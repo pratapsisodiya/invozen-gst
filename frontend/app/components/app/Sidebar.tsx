@@ -1,0 +1,128 @@
+'use client'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils/cn'
+import {
+  LayoutDashboard, FileText, Users, Package, BarChart2, CreditCard,
+  Bell, Stamp, Settings, Briefcase, ChevronLeft, ChevronRight,
+  ShoppingCart, Store, FileMinus, FilePlus, RefreshCw, ClipboardList,
+} from 'lucide-react'
+import { useUIStore } from '@/lib/store/uiStore'
+
+const NAV_GROUPS = [
+  {
+    label: 'Core',
+    items: [
+      { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { href: '/invoices', icon: FileText, label: 'Invoices' },
+      { href: '/customers', icon: Users, label: 'Customers' },
+      { href: '/items', icon: Package, label: 'Items' },
+      { href: '/quotations', icon: ClipboardList, label: 'Quotations' },
+      { href: '/recurring', icon: RefreshCw, label: 'Recurring' },
+    ],
+  },
+  {
+    label: 'GST & Finance',
+    items: [
+      { href: '/reports/gstr1', icon: BarChart2, label: 'GST Reports' },
+      { href: '/payments', icon: CreditCard, label: 'Payments' },
+      { href: '/reminders', icon: Bell, label: 'Reminders' },
+      { href: '/einvoice', icon: Stamp, label: 'E-Invoice' },
+      { href: '/purchases', icon: ShoppingCart, label: 'Purchases' },
+      { href: '/vendors', icon: Store, label: 'Vendors' },
+      { href: '/credit-notes', icon: FileMinus, label: 'Credit Notes' },
+      { href: '/debit-notes', icon: FilePlus, label: 'Debit Notes' },
+    ],
+  },
+  {
+    label: 'More',
+    items: [
+      { href: '/settings', icon: Settings, label: 'Settings' },
+      { href: '/accountant', icon: Briefcase, label: 'Accountant' },
+    ],
+  },
+]
+
+export function Sidebar() {
+  const pathname = usePathname()
+  const { sidebarOpen, toggleSidebar } = useUIStore()
+
+  const isActive = (href: string) => {
+    if (href === '/dashboard') return pathname === '/dashboard'
+    if (href.startsWith('/reports')) return pathname.startsWith('/reports')
+    return pathname.startsWith(href)
+  }
+
+  return (
+    <aside
+      className={cn(
+        'no-print hidden lg:flex flex-col flex-shrink-0 h-screen sticky top-0 transition-all duration-200',
+        sidebarOpen ? 'w-56' : 'w-14'
+      )}
+      style={{ borderRight: '1px solid var(--border)', background: 'white' }}
+    >
+      {/* Logo */}
+      <div className="flex items-center h-14 px-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+        {sidebarOpen ? (
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">G</span>
+            <span className="font-bold text-sm" style={{ color: 'var(--text)' }}>Invozen GST</span>
+          </Link>
+        ) : (
+          <Link href="/dashboard" className="flex items-center justify-center w-full">
+            <span className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center text-white text-xs font-bold">G</span>
+          </Link>
+        )}
+      </div>
+
+      {/* Nav groups */}
+      <nav className="flex-1 overflow-y-auto py-3 px-2 flex flex-col gap-4">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label}>
+            {sidebarOpen && (
+              <p className="text-[10px] font-semibold uppercase tracking-widest px-2 mb-1" style={{ color: 'var(--text-faint)' }}>
+                {group.label}
+              </p>
+            )}
+            <div className="flex flex-col gap-0.5">
+              {group.items.map((item) => {
+                const active = isActive(item.href)
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors',
+                      'hover:bg-ink-50',
+                      active && 'bg-brand-50 text-brand-700 font-medium',
+                      !sidebarOpen && 'justify-center'
+                    )}
+                    style={{ color: active ? undefined : 'var(--text-2)' }}
+                    title={!sidebarOpen ? item.label : undefined}
+                  >
+                    <item.icon className={cn('flex-shrink-0', sidebarOpen ? 'w-4 h-4' : 'w-5 h-5')} />
+                    {sidebarOpen && <span className="truncate">{item.label}</span>}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* Collapse toggle */}
+      <div className="flex-shrink-0 p-2" style={{ borderTop: '1px solid var(--border)' }}>
+        <button
+          onClick={toggleSidebar}
+          className="flex items-center justify-center w-full h-8 rounded-lg hover:bg-ink-50 transition-colors"
+          aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+        >
+          {sidebarOpen
+            ? <ChevronLeft className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+            : <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+          }
+        </button>
+      </div>
+    </aside>
+  )
+}
