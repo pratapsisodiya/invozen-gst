@@ -6,37 +6,13 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const getLabel = () => {
-    switch (status) {
-      case 'draft':
-        return 'Draft'
-      case 'sent':
-        return 'Sent'
-      case 'paid':
-        return 'Paid'
-      case 'overdue':
-        return 'Overdue'
-      case 'void':
-        return 'Void'
-      default:
-        return status
-    }
+  const map: Record<InvoiceStatus, { label: string; variant: any }> = {
+    paid:    { label: 'Paid',    variant: 'success' },
+    sent:    { label: 'Sent',    variant: 'info' },
+    draft:   { label: 'Draft',   variant: 'neutral' },
+    overdue: { label: 'Overdue', variant: 'error' },
+    void:    { label: 'Void',    variant: 'neutral' },
   }
-
-  const getVariant = () => {
-    switch (status) {
-      case 'paid':
-        return 'success'
-      case 'sent':
-        return 'info'
-      case 'overdue':
-        return 'error'
-      case 'draft':
-        return 'warning'
-      default:
-        return 'default'
-    }
-  }
-
-  return <Badge label={getLabel()} variant={getVariant()} />
+  const { label, variant } = map[status] ?? { label: status, variant: 'neutral' }
+  return <Badge label={label} variant={variant} />
 }

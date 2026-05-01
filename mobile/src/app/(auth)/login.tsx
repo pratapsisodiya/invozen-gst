@@ -1,27 +1,29 @@
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native'
-import { Text, TextInput, Button } from 'react-native-paper'
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native'
 import { useState } from 'react'
-import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'expo-router'
+import { useAuthStore } from '@/stores/authStore'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { Colors, Radius, Shadow } from '@/constants/theme'
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const login = useAuthStore((state) => state.login)
+  const [loading, setLoading]   = useState(false)
+  const login  = useAuthStore((s) => s.login)
   const router = useRouter()
 
-  const handleLogin = async () => {
-    // Mock login for MVP - no backend yet
+  const handleLogin = () => {
     setLoading(true)
-
     setTimeout(() => {
       login({
-        id: 'mock-user-1',
-        email: email || 'demo@invozen.com',
-        name: 'Demo User',
-        businessId: 'mock-business-1',
-        role: 'owner',
+        id:             'mock-user-1',
+        email:          email || 'demo@invozen.com',
+        name:           'Demo User',
+        phone:          '',
+        role:           'owner',
+        avatarInitials: 'DU',
+        createdAt:      new Date().toISOString(),
       })
       setLoading(false)
       router.replace('/dashboard')
@@ -31,143 +33,86 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={styles.root}
     >
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {/* Logo */}
-        <View style={styles.logoContainer}>
+        <View style={styles.logoArea}>
           <View style={styles.logoBox}>
-            <Text style={styles.logoText}>G</Text>
+            <Text style={styles.logoLetter}>G</Text>
           </View>
           <Text style={styles.appName}>Invozen GST</Text>
           <Text style={styles.tagline}>GST Invoicing Made Simple</Text>
         </View>
 
-        {/* Login Form */}
-        <View style={styles.form}>
-          <Text variant="headlineSmall" style={styles.heading}>
-            Welcome Back
-          </Text>
-          <Text variant="bodyMedium" style={styles.subheading}>
-            Sign in to your account
-          </Text>
+        {/* Card */}
+        <View style={styles.card}>
+          <Text style={styles.heading}>Welcome Back</Text>
+          <Text style={styles.subheading}>Sign in to your account</Text>
 
-          <TextInput
+          <Input
             label="Email"
             value={email}
             onChangeText={setEmail}
-            mode="outlined"
-            autoCapitalize="none"
             keyboardType="email-address"
-            style={styles.input}
+            autoCapitalize="none"
             placeholder="your@email.com"
           />
-
-          <TextInput
+          <Input
             label="Password"
             value={password}
             onChangeText={setPassword}
-            mode="outlined"
             secureTextEntry
-            style={styles.input}
             placeholder="••••••••"
           />
 
-          <Button
-            mode="contained"
-            onPress={handleLogin}
-            loading={loading}
-            disabled={loading}
-            style={styles.button}
-            buttonColor="#7C3AED"
-          >
+          <Button variant="primary" size="lg" onPress={handleLogin} loading={loading} style={styles.btn}>
             Sign In
           </Button>
-
-          <View style={styles.footer}>
-            <Text variant="bodySmall" style={styles.footerText}>
-              Don't have an account?{' '}
-              <Text
-                style={styles.link}
-                onPress={() => router.push('/signup')}
-              >
-                Sign up
-              </Text>
-            </Text>
-          </View>
         </View>
-      </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Don't have an account? </Text>
+          <Pressable onPress={() => router.push('/signup')}>
+            <Text style={styles.link}>Sign up</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FEF9F3',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
+  root:   { flex: 1, backgroundColor: Colors.bgWarm },
+  scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
+
+  logoArea: { alignItems: 'center', marginBottom: 40 },
   logoBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: '#7C3AED',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 64, height: 64,
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.brand600,
+    alignItems: 'center', justifyContent: 'center',
     marginBottom: 16,
+    ...Shadow.md,
   },
-  logoText: {
-    color: 'white',
-    fontSize: 28,
-    fontWeight: 'bold',
+  logoLetter: { color: '#fff', fontSize: 28, fontWeight: '800' },
+  appName:    { fontSize: 24, fontWeight: '700', color: Colors.text, marginBottom: 6 },
+  tagline:    { fontSize: 14, color: Colors.textMuted },
+
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: Radius.xl,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadow.sm,
   },
-  appName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  tagline: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  form: {
-    width: '100%',
-  },
-  heading: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#1F2937',
-  },
-  subheading: {
-    color: '#6B7280',
-    marginBottom: 24,
-  },
-  input: {
-    marginBottom: 16,
-    backgroundColor: 'white',
-  },
-  button: {
-    marginTop: 8,
-    paddingVertical: 6,
-  },
-  footer: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  footerText: {
-    color: '#6B7280',
-  },
-  link: {
-    color: '#7C3AED',
-    fontWeight: '600',
-  },
+  heading:    { fontSize: 20, fontWeight: '700', color: Colors.text, marginBottom: 4 },
+  subheading: { fontSize: 14, color: Colors.textMuted, marginBottom: 24 },
+  btn:        { marginTop: 8 },
+
+  footer:     { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+  footerText: { fontSize: 14, color: Colors.textMuted },
+  link:       { fontSize: 14, color: Colors.brand600, fontWeight: '600' },
 })

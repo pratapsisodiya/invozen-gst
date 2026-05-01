@@ -45,7 +45,7 @@ export const useItemStore = create<ItemState>()(
 
         const search = query.toLowerCase()
         return items.filter(
-          (item) =>
+          (item:any) =>
             item.name.toLowerCase().includes(search) ||
             item.description?.toLowerCase().includes(search) ||
             item.hsnSac?.toLowerCase().includes(search)

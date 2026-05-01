@@ -1,34 +1,52 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { Slot, useRouter, useSegments } from 'expo-router'
-import React, { useEffect } from 'react'
-import { useColorScheme } from 'react-native'
-import { PaperProvider } from 'react-native-paper'
+import { useEffect } from 'react'
+import { View } from 'react-native'
+import { useFonts,
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans'
+import * as SplashScreen from 'expo-splash-screen'
 import { useAuthStore } from '@/stores/authStore'
+import { ToastContainer } from '@/components/ui/Toast'
+
+SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme()
   const { isAuthenticated } = useAuthStore()
   const segments = useSegments()
   const router = useRouter()
 
-  // Auth guard - redirect based on authentication status
-  useEffect(() => {
-    const inAuthGroup = segments[0] === '(auth)'
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  })
 
+  useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync()
+  }, [fontsLoaded])
+
+  useEffect(() => {
+    if (!fontsLoaded) return
+    const inAuthGroup = segments[0] === '(auth)'
     if (!isAuthenticated && !inAuthGroup) {
-      // User not authenticated, redirect to login
       router.replace('/login')
     } else if (isAuthenticated && inAuthGroup) {
-      // User authenticated but in auth screens, redirect to app
       router.replace('/dashboard')
     }
-  }, [isAuthenticated, segments])
+  }, [isAuthenticated, segments, fontsLoaded])
+
+  if (!fontsLoaded) return null
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <PaperProvider>
-        <Slot />
-      </PaperProvider>
-    </ThemeProvider>
+    <View style={{ flex: 1 }}>
+      <Slot />
+      <ToastContainer />
+    </View>
   )
 }

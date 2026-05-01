@@ -1,46 +1,40 @@
-import { View, StyleSheet, ViewStyle } from 'react-native'
-import { Text } from 'react-native-paper'
+import { View, Text, StyleSheet, ViewStyle } from 'react-native'
+import { Colors, Radius } from '@/constants/theme'
+
+type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'neutral'
 
 interface BadgeProps {
   label: string
-  variant?: 'success' | 'warning' | 'error' | 'info' | 'default'
+  variant?: BadgeVariant
   style?: ViewStyle
 }
 
 export function Badge({ label, variant = 'default', style }: BadgeProps) {
-  const getColors = () => {
-    switch (variant) {
-      case 'success':
-        return { bg: '#D1FAE5', text: '#065F46' }
-      case 'warning':
-        return { bg: '#FEF3C7', text: '#92400E' }
-      case 'error':
-        return { bg: '#FEE2E2', text: '#991B1B' }
-      case 'info':
-        return { bg: '#DBEAFE', text: '#1E40AF' }
-      default:
-        return { bg: '#F3F4F6', text: '#374151' }
-    }
-  }
-
-  const colors = getColors()
-
   return (
-    <View style={[styles.badge, { backgroundColor: colors.bg }, style]}>
-      <Text style={[styles.text, { color: colors.text }]}>{label}</Text>
+    <View style={[styles.base, variantStyles[variant].container, style]}>
+      <Text style={[styles.text, variantStyles[variant].text]}>{label}</Text>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+  base: {
     alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.sm,
   },
   text: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
 })
+
+const variantStyles: Record<BadgeVariant, { container: ViewStyle; text: any }> = {
+  default: { container: { backgroundColor: Colors.brand50 },  text: { color: Colors.brand700 } },
+  success: { container: { backgroundColor: Colors.ok50 },     text: { color: Colors.ok600 } },
+  warning: { container: { backgroundColor: Colors.warn50 },   text: { color: Colors.warn600 } },
+  error:   { container: { backgroundColor: Colors.err50 },    text: { color: Colors.err600 } },
+  info:    { container: { backgroundColor: Colors.blue50 },   text: { color: Colors.blue600 } },
+  neutral: { container: { backgroundColor: Colors.ink100 },   text: { color: Colors.ink500 } },
+}

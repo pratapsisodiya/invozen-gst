@@ -1,26 +1,30 @@
-import { View, StyleSheet } from 'react-native'
-import { Text } from 'react-native-paper'
+import { View, Text, StyleSheet } from 'react-native'
+import { Colors, Radius } from '@/constants/theme'
+import { Button } from './Button'
 
 interface EmptyStateProps {
   icon?: React.ReactNode
   title: string
   description?: string
-  action?: React.ReactNode
+  actionLabel?: string
+  onAction?: () => void
 }
 
-export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, actionLabel, onAction }: EmptyStateProps) {
   return (
     <View style={styles.container}>
-      {icon && <View style={styles.icon}>{icon}</View>}
-      <Text variant="titleMedium" style={styles.title}>
-        {title}
-      </Text>
-      {description && (
-        <Text variant="bodyMedium" style={styles.description}>
-          {description}
-        </Text>
+      {icon && (
+        <View style={styles.iconBox}>
+          {icon}
+        </View>
       )}
-      {action && <View style={styles.action}>{action}</View>}
+      <Text style={styles.title}>{title}</Text>
+      {description && <Text style={styles.description}>{description}</Text>}
+      {actionLabel && onAction && (
+        <Button onPress={onAction} variant="primary" size="md" style={styles.action}>
+          {actionLabel}
+        </Button>
+      )}
     </View>
   )
 }
@@ -28,25 +32,34 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    justifyContent: 'center',
+    paddingVertical: 64,
+    paddingHorizontal: 16,
   },
-  icon: {
+  iconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
   title: {
+    fontSize: 14,
     fontWeight: '600',
-    marginBottom: 8,
+    color: Colors.text,
+    marginBottom: 4,
     textAlign: 'center',
-    color: '#1F2937',
   },
   description: {
+    fontSize: 14,
+    color: Colors.textMuted,
     textAlign: 'center',
-    color: '#6B7280',
+    maxWidth: 280,
+    lineHeight: 20,
     marginBottom: 24,
   },
-  action: {
-    marginTop: 8,
-  },
+  action: { marginTop: 8 },
 })
