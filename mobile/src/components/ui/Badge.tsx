@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, ViewStyle } from 'react-native'
-import { Colors, Radius } from '@/constants/theme'
+import { Colors, FontFamily, Radius } from '@/constants/theme'
 
 type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'neutral'
 
@@ -21,12 +21,13 @@ const styles = StyleSheet.create({
   base: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: Radius.sm,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
   },
   text: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: FontFamily.semibold,
+    letterSpacing: 0.2,
   },
 })
 

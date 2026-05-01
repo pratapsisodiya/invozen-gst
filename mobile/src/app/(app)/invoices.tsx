@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, FlatList } from 'react-native'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'expo-router'
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 import { useInvoiceStore } from '@/stores/invoiceStore'
 import { formatCurrency, formatDate } from '@/lib/utils/formatters'
 import { TopBar } from '@/components/layout/TopBar'
@@ -8,17 +9,46 @@ import { Button } from '@/components/ui/Button'
 import { SearchBar } from '@/components/ui/SearchBar'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Colors, Radius, Shadow } from '@/constants/theme'
-import { FileText } from 'lucide-react-native'
+import { Colors, FontFamily, Radius, Shadow } from '@/constants/theme'
+import { FileText, ChevronRight } from 'lucide-react-native'
 import type { InvoiceStatus } from '@/lib/types/invoice'
 
-const FILTERS: { label: string; value: InvoiceStatus | 'all' }[] = [
-  { label: 'All',     value: 'all' },
-  { label: 'Draft',   value: 'draft' },
-  { label: 'Sent',    value: 'sent' },
-  { label: 'Overdue', value: 'overdue' },
-  { label: 'Paid',    value: 'paid' },
+const FILTERS: { label: string; value: InvoiceStatus | 'all'; color: string }[] = [
+  { label: 'All',     value: 'all',     color: Colors.brand600 },
+  { label: 'Draft',   value: 'draft',   color: Colors.textMuted },
+  { label: 'Sent',    value: 'sent',    color: Colors.blue600 },
+  { label: 'Overdue', value: 'overdue', color: Colors.err600 },
+  { label: 'Paid',    value: 'paid',    color: Colors.ok600 },
 ]
+
+function FilterChip({
+  label, count, active, color, onPress,
+}: { label: string; count: number; active: boolean; color: string; onPress: () => void }) {
+  const scale = useSharedValue(1)
+  const chipStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
+
+  return (
+    <Animated.View style={chipStyle}>
+      <Pressable
+        style={[styles.chip, active && { backgroundColor: color, borderColor: color }]}
+        onPress={onPress}
+        onPressIn={() => { scale.value = withSpring(0.92, { damping: 12 }) }}
+        onPressOut={() => { scale.value = withSpring(1, { damping: 12 }) }}
+      >
+        <Text style={[styles.chipText, active && styles.chipTextActive]}>
+          {label}
+        </Text>
+        {count > 0 && (
+          <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
+            <Text style={[styles.chipBadgeText, active && styles.chipBadgeTextActive]}>
+              {count}
+            </Text>
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
+  )
+}
 
 export default function InvoicesScreen() {
   const router   = useRouter()
@@ -46,54 +76,61 @@ export default function InvoicesScreen() {
     return c
   }, [invoices])
 
+  const totalAmount = useMemo(
+    () => filtered.reduce((sum, inv) => sum + inv.grandTotal, 0),
+    [filtered]
+  )
+
   return (
     <View style={styles.root}>
       <TopBar
         title="Invoices"
         right={
           <Button variant="primary" size="sm" onPress={() => router.push('/invoices/new' as any)}>
-            New
+            + New
           </Button>
         }
       />
 
-      {/* Filter tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabsScroll}
-        contentContainerStyle={styles.tabsContent}
-      >
-        {FILTERS.map((f) => (
-          <Pressable
-            key={f.value}
-            style={[styles.tab, filter === f.value && styles.tabActive]}
-            onPress={() => setFilter(f.value)}
-          >
-            <Text style={[styles.tabText, filter === f.value && styles.tabTextActive]}>
-              {f.label}
-            </Text>
-            {counts[f.value] ? (
-              <View style={[styles.count, filter === f.value && styles.countActive]}>
-                <Text style={[styles.countText, filter === f.value && styles.countTextActive]}>
-                  {counts[f.value]}
-                </Text>
-              </View>
-            ) : null}
-          </Pressable>
-        ))}
-      </ScrollView>
+      {/* Filter chips */}
+      <View style={styles.filterBar}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
+          {FILTERS.map((f) => (
+            <FilterChip
+              key={f.value}
+              label={f.label}
+              count={counts[f.value] ?? 0}
+              active={filter === f.value}
+              color={f.color}
+              onPress={() => setFilter(f.value)}
+            />
+          ))}
+        </ScrollView>
+      </View>
 
       <View style={styles.searchWrap}>
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Search invoices..." />
+        <SearchBar value={search} onChangeText={setSearch} placeholder="Search by invoice # or customer…" />
       </View>
+
+      {/* Summary bar */}
+      {filtered.length > 0 && (
+        <View style={styles.summaryBar}>
+          <Text style={styles.summaryText}>
+            {filtered.length} invoice{filtered.length !== 1 ? 's' : ''} · ₹{formatCurrency(totalAmount)}
+          </Text>
+        </View>
+      )}
 
       {filtered.length === 0 ? (
         <EmptyState
           icon={<FileText size={28} color={Colors.brand600} />}
           title="No invoices found"
-          description={search ? 'Try a different search' : 'Create your first invoice'}
-          actionLabel="New Invoice"
+          description={search ? 'Try a different search term' : 'Create your first invoice to get started'}
+          actionLabel="Create Invoice"
           onAction={() => router.push('/invoices/new' as any)}
         />
       ) : (
@@ -102,72 +139,113 @@ export default function InvoicesScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item: inv }) => (
-            <Pressable
-              style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-              onPress={() => router.push(`/invoices/${inv.id}` as any)}
-            >
-              <View style={styles.cardTop}>
-                <Text style={styles.invoiceNum}>{inv.invoiceNumber}</Text>
-                <StatusBadge status={inv.status} />
-              </View>
-              <View style={styles.cardMid}>
-                <Text style={styles.custName}>{(inv as any).customerSnapshot?.name ?? (inv as any).customerName ?? ''}</Text>
-                <Text style={styles.amount}>₹{formatCurrency(inv.grandTotal)}</Text>
-              </View>
-              <View style={styles.cardBot}>
-                <Text style={styles.date}>{formatDate(inv.invoiceDate)}</Text>
-                {inv.balanceDue > 0 && (
-                  <Text style={styles.due}>Due: ₹{formatCurrency(inv.balanceDue)}</Text>
-                )}
-              </View>
-            </Pressable>
-          )}
+          renderItem={({ item: inv }) => <InvoiceCard inv={inv} onPress={() => router.push(`/invoices/${inv.id}` as any)} />}
         />
       )}
     </View>
   )
 }
 
+function InvoiceCard({ inv, onPress }: { inv: any; onPress: () => void }) {
+  const scale = useSharedValue(1)
+  const cardStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
+  const customerName = inv.customerSnapshot?.name ?? inv.customerName ?? ''
+
+  return (
+    <Animated.View style={cardStyle}>
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        onPress={onPress}
+        onPressIn={() => { scale.value = withSpring(0.98, { damping: 14 }) }}
+        onPressOut={() => { scale.value = withSpring(1, { damping: 14 }) }}
+      >
+        <View style={styles.cardLeft}>
+          <View style={styles.cardIconWrap}>
+            <FileText size={16} color={Colors.brand600} />
+          </View>
+        </View>
+        <View style={styles.cardBody}>
+          <View style={styles.cardTopRow}>
+            <Text style={styles.invoiceNum}>{inv.invoiceNumber}</Text>
+            <StatusBadge status={inv.status} />
+          </View>
+          <Text style={styles.custName} numberOfLines={1}>{customerName}</Text>
+          <View style={styles.cardBottomRow}>
+            <Text style={styles.date}>{formatDate(inv.invoiceDate)}</Text>
+            {inv.balanceDue > 0 && (
+              <Text style={styles.due}>Due ₹{formatCurrency(inv.balanceDue)}</Text>
+            )}
+          </View>
+        </View>
+        <View style={styles.cardRight}>
+          <Text style={styles.amount}>₹{formatCurrency(inv.grandTotal)}</Text>
+          <ChevronRight size={14} color={Colors.textFaint} />
+        </View>
+      </Pressable>
+    </Animated.View>
+  )
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bgWarm },
 
-  tabsScroll:   { flexGrow: 0, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: Colors.border },
-  tabsContent:  { paddingHorizontal: 16, paddingVertical: 0 },
-  tab: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 12,
-    borderBottomWidth: 2, borderBottomColor: 'transparent',
-  },
-  tabActive:     { borderBottomColor: Colors.brand600 },
-  tabText:       { fontSize: 13, fontWeight: '500', color: Colors.textMuted },
-  tabTextActive: { color: Colors.brand700 ?? Colors.brand600, fontWeight: '600' },
-  count: {
-    paddingHorizontal: 6, paddingVertical: 1,
-    borderRadius: 99, backgroundColor: Colors.ink100 ?? Colors.surface,
-  },
-  countActive:     { backgroundColor: Colors.brand100 ?? Colors.bgTinted },
-  countText:       { fontSize: 11, fontWeight: '600', color: Colors.textMuted },
-  countTextActive: { color: Colors.brand700 ?? Colors.brand600 },
-
-  searchWrap: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
-
-  list: { padding: 16, paddingTop: 8, gap: 10 },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: Radius.xl,
-    padding: 16,
+  filterBar:    { backgroundColor: Colors.white, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
+  chipRow:      { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
     borderWidth: 1,
     borderColor: Colors.border,
+    backgroundColor: Colors.white,
+  },
+  chipText:            { fontSize: 13, fontFamily: FontFamily.medium, color: Colors.textMuted },
+  chipTextActive:      { color: '#fff', fontFamily: FontFamily.semibold },
+  chipBadge:           { backgroundColor: Colors.ink100, borderRadius: 99, paddingHorizontal: 6, paddingVertical: 1 },
+  chipBadgeActive:     { backgroundColor: 'rgba(255,255,255,0.25)' },
+  chipBadgeText:       { fontSize: 11, fontFamily: FontFamily.semibold, color: Colors.textMuted },
+  chipBadgeTextActive: { color: '#fff' },
+
+  searchWrap: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, backgroundColor: Colors.white },
+
+  summaryBar: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: Colors.bgWarm },
+  summaryText: { fontSize: 12, fontFamily: FontFamily.medium, color: Colors.textMuted },
+
+  list: { padding: 16, paddingTop: 8, gap: 8 },
+
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: Radius.xl,
+    paddingVertical: 14,
+    paddingRight: 14,
+    paddingLeft: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 10,
     ...Shadow.sm,
   },
   cardPressed: { backgroundColor: Colors.ink50 },
-  cardTop:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  cardMid:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  cardBot:  { flexDirection: 'row', justifyContent: 'space-between' },
-  invoiceNum: { fontSize: 13, fontWeight: '600', color: Colors.brand600, fontVariant: ['tabular-nums'] },
-  custName:   { fontSize: 14, fontWeight: '500', color: Colors.text },
-  amount:     { fontSize: 15, fontWeight: '700', color: Colors.text, fontVariant: ['tabular-nums'] },
-  date: { fontSize: 12, color: Colors.textMuted },
-  due:  { fontSize: 12, color: Colors.warn600, fontWeight: '500' },
+  cardLeft: { justifyContent: 'center' },
+  cardIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.brand50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardBody: { flex: 1, gap: 2 },
+  cardTopRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardBottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 },
+  invoiceNum: { fontSize: 13, fontFamily: FontFamily.semibold, color: Colors.text },
+  custName:   { fontSize: 13, fontFamily: FontFamily.regular, color: Colors.textMuted },
+  date:       { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textFaint },
+  due:        { fontSize: 11, fontFamily: FontFamily.semibold, color: Colors.warn600 },
+  cardRight: { alignItems: 'flex-end', gap: 4 },
+  amount:    { fontSize: 15, fontFamily: FontFamily.bold, color: Colors.text, fontVariant: ['tabular-nums'] },
 })

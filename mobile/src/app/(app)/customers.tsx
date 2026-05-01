@@ -1,30 +1,80 @@
 import { View, Text, StyleSheet, Pressable, FlatList } from 'react-native'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'expo-router'
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 import { useCustomerStore } from '@/stores/customerStore'
 import { TopBar } from '@/components/layout/TopBar'
 import { Button } from '@/components/ui/Button'
 import { SearchBar } from '@/components/ui/SearchBar'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Badge } from '@/components/ui/Badge'
-import { Colors, Radius, Shadow } from '@/constants/theme'
-import { Users } from 'lucide-react-native'
+import { Colors, FontFamily, Radius, Shadow } from '@/constants/theme'
+import { Users, ChevronRight, Building2, User } from 'lucide-react-native'
 
 const TYPE_FILTERS = ['All', 'B2B', 'B2C'] as const
 type TypeFilter = typeof TYPE_FILTERS[number]
 
+const AVATAR_COLORS = [
+  { bg: Colors.brand100, text: Colors.brand700 },
+  { bg: Colors.blue50,   text: Colors.blue600 },
+  { bg: Colors.ok50,     text: Colors.ok600 },
+  { bg: Colors.warn50,   text: Colors.warn600 },
+]
+
 function Avatar({ name }: { name: string }) {
   const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+  const colorIdx = name.charCodeAt(0) % AVATAR_COLORS.length
+  const { bg, text } = AVATAR_COLORS[colorIdx]
   return (
-    <View style={avatarStyles.box}>
-      <Text style={avatarStyles.text}>{initials}</Text>
+    <View style={[avatarStyles.box, { backgroundColor: bg }]}>
+      <Text style={[avatarStyles.text, { color: text }]}>{initials}</Text>
     </View>
   )
 }
 const avatarStyles = StyleSheet.create({
-  box:  { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.brand100 ?? Colors.bgTinted, alignItems: 'center', justifyContent: 'center' },
-  text: { fontSize: 14, fontWeight: '700', color: Colors.brand700 ?? Colors.brand600 },
+  box:  { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  text: { fontSize: 15, fontFamily: FontFamily.bold },
 })
+
+function CustomerCard({ customer, onPress }: { customer: any; onPress: () => void }) {
+  const scale = useSharedValue(1)
+  const cardStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
+  const isB2B = customer.customerType === 'business'
+  const outstanding = customer.outstandingAmount ?? 0
+
+  return (
+    <Animated.View style={cardStyle}>
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        onPress={onPress}
+        onPressIn={() => { scale.value = withSpring(0.98, { damping: 14 }) }}
+        onPressOut={() => { scale.value = withSpring(1, { damping: 14 }) }}
+      >
+        <Avatar name={customer.name} />
+        <View style={styles.info}>
+          <View style={styles.nameRow}>
+            <Text style={styles.name} numberOfLines={1}>{customer.name}</Text>
+            <View style={[styles.typePill, { backgroundColor: isB2B ? Colors.blue50 : Colors.ink100 }]}>
+              {isB2B
+                ? <Building2 size={10} color={Colors.blue600} />
+                : <User size={10} color={Colors.ink500} />
+              }
+              <Text style={[styles.typeText, { color: isB2B ? Colors.blue600 : Colors.ink500 }]}>
+                {isB2B ? 'B2B' : 'B2C'}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.sub} numberOfLines={1}>
+            {customer.gstin ?? customer.state ?? 'No GSTIN'}
+          </Text>
+          {outstanding > 0 && (
+            <Text style={styles.outstanding}>₹{outstanding.toLocaleString('en-IN')} outstanding</Text>
+          )}
+        </View>
+        <ChevronRight size={16} color={Colors.textFaint} />
+      </Pressable>
+    </Animated.View>
+  )
+}
 
 export default function CustomersScreen() {
   const router    = useRouter()
@@ -50,31 +100,35 @@ export default function CustomersScreen() {
         title="Customers"
         right={
           <Button variant="primary" size="sm" onPress={() => router.push('/customers/new' as any)}>
-            Add
+            + Add
           </Button>
         }
       />
 
-      <View style={styles.filters}>
+      <View style={styles.filterArea}>
         <View style={styles.typeRow}>
-          {TYPE_FILTERS.map((t) => (
-            <Pressable
-              key={t}
-              style={[styles.typeBtn, typeFilter === t && styles.typeBtnActive]}
-              onPress={() => setType(t)}
-            >
-              <Text style={[styles.typeBtnText, typeFilter === t && styles.typeBtnTextActive]}>{t}</Text>
-            </Pressable>
-          ))}
+          {TYPE_FILTERS.map((t) => {
+            const active = typeFilter === t
+            return (
+              <Pressable
+                key={t}
+                style={[styles.typeChip, active && styles.typeChipActive]}
+                onPress={() => setType(t)}
+              >
+                <Text style={[styles.typeChipText, active && styles.typeChipTextActive]}>{t}</Text>
+              </Pressable>
+            )
+          })}
+          <Text style={styles.filterCount}>{filtered.length} total</Text>
         </View>
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Search customers..." />
+        <SearchBar value={search} onChangeText={setSearch} placeholder="Name or GSTIN…" />
       </View>
 
       {filtered.length === 0 ? (
         <EmptyState
           icon={<Users size={28} color={Colors.brand600} />}
           title="No customers found"
-          description={search ? 'Try a different search' : 'Add your first customer'}
+          description={search ? 'Try a different search' : 'Add your first customer to get started'}
           actionLabel="Add Customer"
           onAction={() => router.push('/customers/new' as any)}
         />
@@ -85,22 +139,10 @@ export default function CustomersScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item: c }) => (
-            <Pressable
-              style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+            <CustomerCard
+              customer={c}
               onPress={() => router.push(`/customers/${c.id}` as any)}
-            >
-              <Avatar name={c.name} />
-              <View style={styles.info}>
-                <Text style={styles.name}>{c.name}</Text>
-                <Text style={styles.sub}>{c.gstin ?? (c as any).state ?? 'No GSTIN'}</Text>
-              </View>
-              <View style={styles.right}>
-                <Badge variant={(c as any).customerType === 'business' ? 'info' : 'neutral'} label={(c as any).customerType === 'business' ? 'B2B' : 'B2C'} />
-                {((c as any).outstandingAmount ?? 0) > 0 && (
-                  <Text style={styles.outstanding}>₹{(c as any).outstandingAmount?.toLocaleString('en-IN')}</Text>
-                )}
-              </View>
-            </Pressable>
+            />
           )}
         />
       )}
@@ -111,26 +153,56 @@ export default function CustomersScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bgWarm },
 
-  filters:  { backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: Colors.border, padding: 16, paddingBottom: 12, gap: 12 },
-  typeRow:  { flexDirection: 'row', gap: 8 },
-  typeBtn:  { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 99, borderWidth: 1, borderColor: Colors.border, backgroundColor: '#fff' },
-  typeBtnActive: { backgroundColor: Colors.brand600, borderColor: Colors.brand600 },
-  typeBtnText:   { fontSize: 13, fontWeight: '500', color: Colors.textMuted },
-  typeBtnTextActive: { color: '#fff' },
+  filterArea: {
+    backgroundColor: Colors.white,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    gap: 12,
+  },
+  typeRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  typeChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+  },
+  typeChipActive:     { backgroundColor: Colors.brand600, borderColor: Colors.brand600 },
+  typeChipText:       { fontSize: 13, fontFamily: FontFamily.medium, color: Colors.textMuted },
+  typeChipTextActive: { fontFamily: FontFamily.semibold, color: '#fff' },
+  filterCount:        { marginLeft: 'auto', fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textFaint },
 
-  list: { padding: 16, gap: 10 },
+  list: { padding: 16, gap: 8 },
+
   card: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.white,
     borderRadius: Radius.xl,
     padding: 14,
-    borderWidth: 1, borderColor: Colors.border,
+    borderWidth: 1,
+    borderColor: Colors.border,
     ...Shadow.sm,
   },
   cardPressed: { backgroundColor: Colors.ink50 },
-  info:  { flex: 1 },
-  name:  { fontSize: 14, fontWeight: '600', color: Colors.text },
-  sub:   { fontSize: 12, color: Colors.textMuted, marginTop: 2, fontVariant: ['tabular-nums'] },
-  right: { alignItems: 'flex-end', gap: 4 },
-  outstanding: { fontSize: 12, color: Colors.warn600, fontWeight: '500' },
+
+  info:    { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  name:    { fontSize: 14, fontFamily: FontFamily.semibold, color: Colors.text, flex: 1 },
+  typePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+  },
+  typeText:    { fontSize: 10, fontFamily: FontFamily.semibold },
+  sub:         { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textMuted },
+  outstanding: { fontSize: 11, fontFamily: FontFamily.semibold, color: Colors.warn600, marginTop: 2 },
 })

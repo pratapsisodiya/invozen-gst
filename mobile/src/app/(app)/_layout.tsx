@@ -10,6 +10,7 @@ export default function AppLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: Colors.bgWarm },
+          animation: 'slide_from_right',
         }}
       />
       <MobileTabBar />

@@ -1,7 +1,9 @@
-import { View, Text, Pressable, StyleSheet, Platform, StatusBar } from 'react-native'
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft } from 'lucide-react-native'
 import { useRouter } from 'expo-router'
-import { Colors, Shadow, TopBarHeight } from '@/constants/theme'
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
+import { Colors, FontFamily, Shadow, TopBarHeight } from '@/constants/theme'
 import type { ReactNode } from 'react'
 
 interface TopBarProps {
@@ -13,15 +15,29 @@ interface TopBarProps {
 
 export function TopBar({ title, showBack, onBack, right }: TopBarProps) {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const handleBack = onBack ?? (() => router.back())
 
+  const backScale = useSharedValue(1)
+  const backStyle = useAnimatedStyle(() => ({ transform: [{ scale: backScale.value }] }))
+
+  const paddingTop = Platform.OS === 'android' ? insets.top : 0
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop }]}>
       <View style={styles.inner}>
         {showBack ? (
-          <Pressable onPress={handleBack} style={styles.backBtn} hitSlop={8}>
-            <ArrowLeft size={20} color={Colors.text} />
-          </Pressable>
+          <Animated.View style={backStyle}>
+            <Pressable
+              onPress={handleBack}
+              onPressIn={() => { backScale.value = withSpring(0.88, { damping: 15 }) }}
+              onPressOut={() => { backScale.value = withSpring(1, { damping: 15 }) }}
+              style={styles.backBtn}
+              hitSlop={8}
+            >
+              <ArrowLeft size={20} color={Colors.text} />
+            </Pressable>
+          </Animated.View>
         ) : (
           <View style={styles.placeholder} />
         )}
@@ -34,10 +50,9 @@ export function TopBar({ title, showBack, onBack, right }: TopBarProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.white ?? '#ffffff',
-    borderBottomWidth: 1,
+    backgroundColor: Colors.white,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0,
     ...Shadow.sm,
   },
   inner: {
@@ -52,14 +67,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 4,
+    borderRadius: 18,
+    backgroundColor: Colors.ink50,
   },
   placeholder: { width: 40 },
   title: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FontFamily.semibold,
     color: Colors.text,
     textAlign: 'center',
+    letterSpacing: -0.2,
   },
   rightSlot: {
     minWidth: 40,

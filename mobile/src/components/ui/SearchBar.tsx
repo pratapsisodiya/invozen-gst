@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { View, TextInput, Pressable, StyleSheet, ViewStyle } from 'react-native'
 import { Search, X } from 'lucide-react-native'
-import { Colors, Radius } from '@/constants/theme'
+import { Colors, FontFamily, Radius } from '@/constants/theme'
 
 interface SearchBarProps {
   value: string
@@ -14,12 +14,8 @@ export function SearchBar({ value, onChangeText, placeholder = 'Search...', styl
   const [focused, setFocused] = useState(false)
 
   return (
-    <View style={[
-      styles.container,
-      focused && styles.focused,
-      style,
-    ]}>
-      <Search size={16} color={Colors.textMuted} style={styles.icon} />
+    <View style={[styles.container, focused && styles.focused, style]}>
+      <Search size={16} color={focused ? Colors.brand600 : Colors.textMuted} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -30,8 +26,10 @@ export function SearchBar({ value, onChangeText, placeholder = 'Search...', styl
         onBlur={() => setFocused(false)}
       />
       {value.length > 0 && (
-        <Pressable onPress={() => onChangeText('')} style={styles.clearBtn}>
-          <X size={14} color={Colors.textMuted} />
+        <Pressable onPress={() => onChangeText('')} style={styles.clearBtn} hitSlop={6}>
+          <View style={styles.clearIcon}>
+            <X size={10} color={Colors.white} />
+          </View>
         </Pressable>
       )}
     </View>
@@ -40,32 +38,39 @@ export function SearchBar({ value, onChangeText, placeholder = 'Search...', styl
 
 const styles = StyleSheet.create({
   container: {
-    height: 36,
+    height: 40,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: Colors.border,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     gap: 8,
   },
   focused: {
     borderColor: Colors.brand600,
+    backgroundColor: Colors.white,
     shadowColor: Colors.brand600,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.12,
     shadowRadius: 4,
     elevation: 2,
   },
-  icon: {},
   input: {
     flex: 1,
     fontSize: 14,
+    fontFamily: FontFamily.regular,
     color: Colors.text,
     height: '100%',
   },
-  clearBtn: {
-    padding: 2,
+  clearBtn: { padding: 2 },
+  clearIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.textFaint,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 })

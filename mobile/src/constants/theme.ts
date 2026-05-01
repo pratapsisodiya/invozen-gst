@@ -60,5 +60,13 @@ export const Shadow = {
   },
 }
 
+export const FontFamily = {
+  regular:   'PlusJakartaSans_400Regular',
+  medium:    'PlusJakartaSans_500Medium',
+  semibold:  'PlusJakartaSans_600SemiBold',
+  bold:      'PlusJakartaSans_700Bold',
+  extrabold: 'PlusJakartaSans_800ExtraBold',
+}
+
 export const TabBarHeight = 56
 export const TopBarHeight = 56

@@ -1,5 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native'
-import { Colors, Radius } from '@/constants/theme'
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
+import { useEffect } from 'react'
+import { Colors, FontFamily, Radius } from '@/constants/theme'
 import { Button } from './Button'
 
 interface EmptyStateProps {
@@ -11,8 +13,21 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ icon, title, description, actionLabel, onAction }: EmptyStateProps) {
+  const opacity    = useSharedValue(0)
+  const translateY = useSharedValue(20)
+
+  useEffect(() => {
+    opacity.value    = withSpring(1, { damping: 18 })
+    translateY.value = withSpring(0, { damping: 18 })
+  }, [])
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }))
+
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, animStyle]}>
       {icon && (
         <View style={styles.iconBox}>
           {icon}
@@ -25,7 +40,7 @@ export function EmptyState({ icon, title, description, actionLabel, onAction }: 
           {actionLabel}
         </Button>
       )}
-    </View>
+    </Animated.View>
   )
 }
 
@@ -35,31 +50,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 64,
-    paddingHorizontal: 16,
+    paddingHorizontal: 32,
   },
   iconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.surface2,
+    width: 64,
+    height: 64,
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.brand50,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.brand200,
   },
   title: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontFamily: FontFamily.semibold,
     color: Colors.text,
-    marginBottom: 4,
+    marginBottom: 8,
     textAlign: 'center',
   },
   description: {
     fontSize: 14,
+    fontFamily: FontFamily.regular,
     color: Colors.textMuted,
     textAlign: 'center',
-    maxWidth: 280,
-    lineHeight: 20,
-    marginBottom: 24,
+    maxWidth: 260,
+    lineHeight: 21,
+    marginBottom: 28,
   },
-  action: { marginTop: 8 },
+  action: { marginTop: 0 },
 })

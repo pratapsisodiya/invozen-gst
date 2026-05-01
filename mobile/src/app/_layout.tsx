@@ -1,6 +1,7 @@
 import { Slot, useRouter, useSegments } from 'expo-router'
 import { useEffect } from 'react'
 import { View } from 'react-native'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { useFonts,
   PlusJakartaSans_400Regular,
   PlusJakartaSans_500Medium,
@@ -44,9 +45,11 @@ export default function RootLayout() {
   if (!fontsLoaded) return null
 
   return (
-    <View style={{ flex: 1 }}>
-      <Slot />
-      <ToastContainer />
-    </View>
+    <SafeAreaProvider>
+      <View style={{ flex: 1 }}>
+        <Slot />
+        <ToastContainer />
+      </View>
+    </SafeAreaProvider>
   )
 }

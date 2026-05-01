@@ -1,5 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native'
-import { Colors, Radius, Shadow } from '@/constants/theme'
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring } from 'react-native-reanimated'
+import { useEffect } from 'react'
+import { Colors, FontFamily, Radius, Shadow } from '@/constants/theme'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { TrendingUp, TrendingDown } from 'lucide-react-native'
 
@@ -13,9 +15,15 @@ interface KpiCardProps {
   subtext?: string
   subtextColor?: SubtextColor
   icon?: React.ReactNode
+  accentColor?: string
+  index?: number
 }
 
-export function KpiCard({ title, value, isAmount, trend, subtext, subtextColor = 'default', icon }: KpiCardProps) {
+export function KpiCard({
+  title, value, isAmount, trend, subtext, subtextColor = 'default', icon,
+  accentColor = Colors.brand600,
+  index = 0,
+}: KpiCardProps) {
   const displayValue = isAmount && typeof value === 'number'
     ? `₹${formatCurrency(value)}`
     : String(value)
@@ -27,30 +35,46 @@ export function KpiCard({ title, value, isAmount, trend, subtext, subtextColor =
     success: Colors.ok600,
   }
 
+  const opacity   = useSharedValue(0)
+  const translateY = useSharedValue(16)
+
+  useEffect(() => {
+    opacity.value    = withDelay(index * 80, withSpring(1, { damping: 18 }))
+    translateY.value = withDelay(index * 80, withSpring(0, { damping: 18 }))
+  }, [])
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }))
+
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
-        {icon}
-      </View>
-      <Text style={styles.value}>{displayValue}</Text>
-      {trend && (
-        <View style={styles.trendRow}>
-          {trend.value >= 0
-            ? <TrendingUp size={12} color={Colors.ok600} />
-            : <TrendingDown size={12} color={Colors.err600} />
-          }
-          <Text style={[styles.trendText, { color: trend.value >= 0 ? Colors.ok600 : Colors.err600 }]}>
-            {trend.value >= 0 ? '+' : ''}{trend.value}% {trend.label}
-          </Text>
+    <Animated.View style={[styles.card, animStyle]}>
+      <View style={[styles.accent, { backgroundColor: accentColor }]} />
+      <View style={styles.body}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{title}</Text>
+          {icon}
         </View>
-      )}
-      {subtext && (
-        <Text style={[styles.subtext, { color: subtextColorMap[subtextColor] }]}>
-          {subtext}
-        </Text>
-      )}
-    </View>
+        <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit>{displayValue}</Text>
+        {trend && (
+          <View style={styles.trendRow}>
+            {trend.value >= 0
+              ? <TrendingUp size={12} color={Colors.ok600} />
+              : <TrendingDown size={12} color={Colors.err600} />
+            }
+            <Text style={[styles.trendText, { color: trend.value >= 0 ? Colors.ok600 : Colors.err600 }]}>
+              {trend.value >= 0 ? '+' : ''}{trend.value}% {trend.label}
+            </Text>
+          </View>
+        )}
+        {subtext && (
+          <Text style={[styles.subtext, { color: subtextColorMap[subtextColor] }]}>
+            {subtext}
+          </Text>
+        )}
+      </View>
+    </Animated.View>
   )
 }
 
@@ -59,11 +83,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
     borderRadius: Radius.xl,
-    padding: 16,
     borderWidth: 1,
     borderColor: Colors.border,
-    gap: 4,
+    overflow: 'hidden',
+    flexDirection: 'row',
     ...Shadow.sm,
+  },
+  accent: {
+    width: 4,
+    alignSelf: 'stretch',
+    borderTopLeftRadius: Radius.xl,
+    borderBottomLeftRadius: Radius.xl,
+  },
+  body: {
+    flex: 1,
+    padding: 14,
+    gap: 4,
   },
   header: {
     flexDirection: 'row',
@@ -71,12 +106,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 13,
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
     color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   value: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: FontFamily.bold,
     color: Colors.text,
     lineHeight: 28,
   },
@@ -86,10 +124,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   trendText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontFamily: FontFamily.semibold,
   },
   subtext: {
-    fontSize: 12,
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
   },
 })
