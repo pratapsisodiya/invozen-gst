@@ -4,6 +4,16 @@ export type GSTRegistrationType = 'regular' | 'composition' | 'unregistered'
 export type FilingFrequency = 'monthly' | 'quarterly'
 export type InvoiceTemplate = 'standard' | 'compact' | 'detailed'
 
+export interface Branch {
+  id: string
+  name: string
+  gstin: string
+  stateCode: string
+  state: string
+  address: Address
+  isDefault: boolean
+}
+
 export interface BusinessProfile {
   businessName: string
   legalName: string
@@ -21,6 +31,7 @@ export interface BusinessProfile {
   billingAddress: Address
   logoUrl: string | null
   signatureUrl: string | null
+  branches: Branch[]
 }
 
 export interface InvoiceSettings {
@@ -43,10 +54,20 @@ export interface BankDetails {
   upiId: string
 }
 
+export interface NotificationSetting {
+  id: string
+  label: string
+  desc: string
+  enabled: boolean
+}
+
 export interface AppSettings {
   invoiceSettings: InvoiceSettings
   bankDetails: BankDetails
   whatsappNumber: string
   defaultGstRate: number
   razorpayConnected: boolean
+  currentBankBalance: number
+  cashAlertThreshold: number
+  notificationSettings: NotificationSetting[]
 }

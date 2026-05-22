@@ -3,12 +3,15 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuotationStore } from '@/lib/store/quotationStore'
 import { useUIStore } from '@/lib/store/uiStore'
+import { useBusinessStore } from '@/lib/store/businessStore'
+import { useCustomerStore } from '@/lib/store/customerStore'
 import { TopBar } from '../app/TopBar'
 import { AmountDisplay } from '../ui/AmountDisplay'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { formatDate } from '@/lib/utils/formatters'
-import { Send, CheckCircle, XCircle, FileCheck, Trash2, ExternalLink } from 'lucide-react'
+import { Send, CheckCircle, XCircle, FileCheck, Trash2, ExternalLink, FileDown, MessageCircle } from 'lucide-react'
 import type { QuotationStatus } from '@/types/quotation'
+import { downloadQuotationPdf } from '@/lib/pdf/quotationPdf'
 
 const STATUS_COLORS: Record<QuotationStatus, { bg: string; text: string }> = {
   draft: { bg: '#F3F4F6', text: '#6B7280' },
@@ -23,6 +26,8 @@ export function QuotationDetailClient({ id }: { id: string }) {
   const router = useRouter()
   const { quotations, markSent, markAccepted, markRejected, convertToInvoice, deleteQuotation } = useQuotationStore()
   const { addToast } = useUIStore()
+  const { profile } = useBusinessStore()
+  const { customers } = useCustomerStore()
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   const q = quotations.find((x) => x.id === id)
@@ -41,6 +46,14 @@ export function QuotationDetailClient({ id }: { id: string }) {
     else addToast({ type: 'error', title: 'Could not convert' })
   }
 
+  const handleWhatsApp = () => {
+    const cust = customers.find((c) => c.id === q!.customerId)
+    const phone = cust?.phone
+    if (!phone) { addToast({ type: 'error', title: 'No phone number for this customer' }); return }
+    const msg = `Dear ${q!.customerSnapshot.name},\n\nPlease find our quotation *${q!.quotationNumber}* for ₹${q!.grandTotal.toLocaleString('en-IN')}.\n\nValid until: ${formatDate(q!.validUntil)}\n\n— ${profile?.businessName ?? ''}`
+    window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, '_blank')
+  }
+
   return (
     <div className="flex flex-col flex-1">
       <TopBar
@@ -48,6 +61,18 @@ export function QuotationDetailClient({ id }: { id: string }) {
         breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Quotations', href: '/quotations' }]}
         actions={
           <div className="flex gap-2 no-print flex-wrap">
+            {profile && (
+              <button onClick={() => void downloadQuotationPdf(q, profile)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                style={{ border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+                <FileDown className="w-4 h-4" /> PDF
+              </button>
+            )}
+            <button onClick={handleWhatsApp}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+              style={{ border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+              <MessageCircle className="w-4 h-4" /> WhatsApp
+            </button>
             {q.status === 'draft' && (
               <button onClick={() => { markSent(id); addToast({ type: 'success', title: 'Marked as sent' }) }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"

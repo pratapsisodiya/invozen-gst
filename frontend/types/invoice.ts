@@ -1,6 +1,6 @@
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'void'
 export type SupplyType = 'intra' | 'inter'
-export type InvoiceType = 'tax_invoice' | 'proforma' | 'credit_note' | 'debit_note' | 'receipt_voucher'
+export type InvoiceType = 'tax_invoice' | 'proforma' | 'credit_note' | 'debit_note' | 'receipt_voucher' | 'bill_of_supply'
 
 export interface LineItem {
   id: string
@@ -16,6 +16,8 @@ export interface LineItem {
   cgst: number
   sgst: number
   igst: number
+  cessRate: number
+  cessAmount: number
   totalAmount: number
 }
 
@@ -44,6 +46,7 @@ export interface Invoice {
   cgstTotal: number
   sgstTotal: number
   igstTotal: number
+  cessTotal: number
   totalTax: number
   grandTotal: number
   amountPaid: number
@@ -53,6 +56,22 @@ export interface Invoice {
   placeOfSupply: string
   irnNumber: string | null
   irnStatus: 'pending' | 'generated' | 'cancelled' | null
+  irnAckNo?: string | null
+  irnAckDate?: string | null
+  irnQrCode?: string | null
+  // TDS fields
+  tdsSection: string | null
+  tdsRate: number | null
+  tdsAmount: number | null
+  // Amendment fields
+  amendedInvoiceId: string | null
+  amendedInvoiceNumber: string | null
+  amendmentReason: string | null
+  // Multi-currency
+  currency: string
+  exchangeRate: number
+  // Attachments
+  attachmentIds: string[]
   createdAt: string
   updatedAt: string
 }

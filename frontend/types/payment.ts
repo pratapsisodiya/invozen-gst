@@ -2,13 +2,15 @@ export type PaymentMethod = 'upi' | 'neft' | 'rtgs' | 'cash' | 'cheque' | 'card'
 
 export interface Payment {
   id: string
-  invoiceId: string
+  invoiceId: string | null
   customerId: string
   amount: number
   paymentDate: string
   method: PaymentMethod
   reference: string | null
   notes: string | null
+  isAdvance: boolean
+  advanceAdjustedInvoiceId: string | null
   createdAt: string
 }
 

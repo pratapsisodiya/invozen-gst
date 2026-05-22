@@ -1,15 +1,12 @@
-'use client'
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/store/authStore'
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore()
-  const router = useRouter()
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
+  const { userId } = await auth()
 
-  useEffect(() => {
-    if (isAuthenticated) router.replace('/dashboard')
-  }, [isAuthenticated, router])
+  if (userId) {
+    redirect('/dashboard')
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-warm)' }}>

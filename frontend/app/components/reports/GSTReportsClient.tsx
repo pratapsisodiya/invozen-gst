@@ -1,15 +1,22 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
+import { usePurchaseStore } from '@/lib/store/purchaseStore'
+import { useBusinessStore } from '@/lib/store/businessStore'
+import { useExpenseStore } from '@/lib/store/expenseStore'
 import { TopBar } from '../app/TopBar'
 import { Tabs } from '../ui/Tabs'
 import { KpiCard } from '../ui/KpiCard'
 import { calculateGSTR1Summary } from '@/lib/gst/gstr1'
 import { calculateGSTR3BSummary } from '@/lib/gst/gstr3b'
+import { exportGSTR1AsJSON, exportGSTR1AsCSV, exportGSTR3BAsCSV } from '@/lib/export/gstr1Export'
+import { downloadTallyXML } from '@/lib/export/tallyExport'
 import { formatDate } from '@/lib/utils/formatters'
 import { useUIStore } from '@/lib/store/uiStore'
-import { Download, FileText } from 'lucide-react'
+import { Download, FileText, Sparkles, Loader2, AlertTriangle, AlertCircle, Info } from 'lucide-react'
 import { ReportInsights } from '../ai/ReportInsights'
+import { ITCOptimizerCard } from '../ai/ITCOptimizerCard'
+import type { AnomalyIssue } from '@/app/api/ai/gstr1-anomaly/route'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -19,20 +26,87 @@ type TabKey = 'gstr1' | 'gstr3b' | 'tax-summary' | 'einvoice-status'
 
 export function GSTReportsClient({ defaultTab = 'gstr1' }: { defaultTab?: TabKey }) {
   const { invoices } = useInvoiceStore()
+  const { purchases } = usePurchaseStore()
+  const { profile } = useBusinessStore()
+  const { expenses } = useExpenseStore()
   const { addToast } = useUIStore()
 
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
   const [activeTab, setActiveTab] = useState<TabKey>(defaultTab)
+  const [anomalyLoading, setAnomalyLoading] = useState(false)
+  const [anomalies, setAnomalies] = useState<AnomalyIssue[] | null>(null)
+
+  const handleAnomalyCheck = async () => {
+    setAnomalyLoading(true)
+    setAnomalies(null)
+    try {
+      const period = `${MONTHS[selectedMonth - 1]} ${selectedYear}`
+      const periodInvoices = invoices.filter((inv) => {
+        if (inv.status === 'void' || inv.status === 'draft') return false
+        const d = new Date(inv.invoiceDate)
+        return d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear
+      })
+      const res = await fetch('/api/ai/gstr1-anomaly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          period,
+          businessGstin: profile.gstin,
+          businessState: profile.state,
+          b2bEntries: gstr1.b2b.map((e) => ({
+            invoiceId: e.invoiceId,
+            invoiceNumber: e.invoiceNumber,
+            customerGstin: e.customerGstin,
+            customerName: e.customerName,
+            invoiceDate: e.invoiceDate,
+            taxableValue: e.taxableValue,
+            igst: e.igst,
+            cgst: e.cgst,
+            sgst: e.sgst,
+            placeOfSupply: e.placeOfSupply,
+          })),
+          hsnSummary: gstr1.hsn?.slice(0, 20) ?? [],
+          totalInvoices: periodInvoices.length,
+          totalTaxableValue: gstr1.totals.taxableValue,
+          totalTax: gstr1.totals.totalTax,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      const data = await res.json() as { issues: AnomalyIssue[] }
+      setAnomalies(data.issues)
+      if (data.issues.length === 0) {
+        addToast({ type: 'success', title: 'No anomalies found', message: 'GSTR-1 data looks clean' })
+      }
+    } catch {
+      addToast({ type: 'error', title: 'Anomaly check failed', message: 'Please try again' })
+    } finally {
+      setAnomalyLoading(false)
+    }
+  }
 
   const period = { month: selectedMonth, year: selectedYear }
 
   const gstr1 = useMemo(() => calculateGSTR1Summary(invoices, period), [invoices, selectedMonth, selectedYear])
-  const gstr3b = useMemo(() => calculateGSTR3BSummary(invoices, [], period), [invoices, selectedMonth, selectedYear])
+  const gstr3b = useMemo(() => calculateGSTR3BSummary(invoices, purchases, period, expenses), [invoices, purchases, expenses, selectedMonth, selectedYear])
 
   const handleDownload = (format: string) => {
-    addToast({ type: 'success', title: `${format} exported`, message: `${activeTab.toUpperCase()} data for ${MONTHS[selectedMonth - 1]} ${selectedYear}` })
+    try {
+      if (format === 'JSON') {
+        if (activeTab === 'gstr1') exportGSTR1AsJSON(gstr1)
+        else addToast({ type: 'info', title: 'JSON export only available for GSTR-1' })
+      } else if (format === 'Excel') {
+        if (activeTab === 'gstr1') exportGSTR1AsCSV(gstr1)
+        else if (activeTab === 'gstr3b') exportGSTR3BAsCSV({ ...gstr3b, period: { month: selectedMonth, year: selectedYear } })
+        else addToast({ type: 'info', title: 'Switch to GSTR-1 or GSTR-3B to export CSV' })
+      } else if (format === 'Tally') {
+        downloadTallyXML(invoices, purchases, profile)
+      }
+      addToast({ type: 'success', title: `${format} exported`, message: `${MONTHS[selectedMonth - 1]} ${selectedYear}` })
+    } catch {
+      addToast({ type: 'error', title: 'Export failed', message: 'Please try again' })
+    }
   }
 
   // Derived values
@@ -123,9 +197,22 @@ export function GSTReportsClient({ defaultTab = 'gstr1' }: { defaultTab?: TabKey
               <Download className="w-3.5 h-3.5" /> JSON
             </button>
             <button onClick={() => handleDownload('Excel')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors">
-              <Download className="w-3.5 h-3.5" /> Excel
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
+              style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+              <Download className="w-3.5 h-3.5" /> CSV
             </button>
+            <button onClick={() => handleDownload('Tally')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors">
+              <Download className="w-3.5 h-3.5" /> Tally XML
+            </button>
+            {activeTab === 'gstr1' && (
+              <button onClick={handleAnomalyCheck} disabled={anomalyLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 disabled:opacity-50 transition-colors"
+                style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+                {anomalyLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-brand-600" />}
+                Anomaly Check
+              </button>
+            )}
           </div>
         }
       />
@@ -252,6 +339,35 @@ export function GSTReportsClient({ defaultTab = 'gstr1' }: { defaultTab?: TabKey
             </div>
           )}
 
+          {/* Anomaly Results */}
+          {activeTab === 'gstr1' && anomalies && anomalies.length > 0 && (
+            <div className="mx-5 mb-1 rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+              <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+                <AlertTriangle className="w-4 h-4 text-warn-600" />
+                <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>AI Anomaly Check — {anomalies.length} issue{anomalies.length > 1 ? 's' : ''} found</span>
+              </div>
+              <div className="flex flex-col divide-y" style={{ borderColor: 'var(--border-soft)' }}>
+                {anomalies.map((issue, i) => (
+                  <div key={i} className="px-4 py-3 flex items-start gap-3">
+                    {issue.severity === 'error'
+                      ? <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-err-600" />
+                      : <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-warn-600" />}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded uppercase ${issue.severity === 'error' ? 'bg-err-100 text-err-700' : 'bg-warn-100 text-warn-700'}`}>
+                          {issue.severity}
+                        </span>
+                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{issue.category}</span>
+                      </div>
+                      <p className="text-[13px] font-medium mt-0.5" style={{ color: 'var(--text)' }}>{issue.message}</p>
+                      {issue.fix && <p className="text-xs mt-0.5 text-brand-700">{issue.fix}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* GSTR-3B */}
           {activeTab === 'gstr3b' && (
             <div className="p-5 flex flex-col gap-5">
@@ -351,6 +467,8 @@ export function GSTReportsClient({ defaultTab = 'gstr1' }: { defaultTab?: TabKey
                   </div>
                 </div>
               </div>
+
+              <ITCOptimizerCard period={`${MONTHS[selectedMonth - 1]} ${selectedYear}`} />
             </div>
           )}
 

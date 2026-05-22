@@ -2,16 +2,25 @@
 import { useState } from 'react'
 import { useBusinessStore } from '@/lib/store/businessStore'
 import { useUIStore } from '@/lib/store/uiStore'
+import { useInvoiceStore } from '@/lib/store/invoiceStore'
+import { useCustomerStore } from '@/lib/store/customerStore'
+import { usePaymentStore } from '@/lib/store/paymentStore'
+import { usePurchaseStore } from '@/lib/store/purchaseStore'
 import { TopBar } from '../app/TopBar'
 import { Tabs } from '../ui/Tabs'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
+import { UserManagement } from './UserManagement'
+import { BranchManagement } from './BranchManagement'
 import { GST_RATES, STATE_CODES } from '@/lib/gst/constants'
+import { downloadCSV, downloadJSON } from '@/lib/export/excelExport'
+import { calculateGSTR1Summary } from '@/lib/gst/gstr1'
 
 const STATE_OPTIONS = Object.entries(STATE_CODES).map(([code, name]) => ({ value: code, label: name }))
 
 const TABS = [
   { key: 'profile', label: 'Business Profile' },
+  { key: 'branches', label: 'Branches' },
   { key: 'invoice', label: 'Invoice Settings' },
   { key: 'tax', label: 'Tax & GST' },
   { key: 'team', label: 'Team & Access' },
@@ -23,16 +32,12 @@ const TABS = [
 export function SettingsClient() {
   const { profile, settings, updateProfile, updateSettings } = useBusinessStore()
   const { addToast } = useUIStore()
+  const { invoices, setInvoices } = useInvoiceStore()
+  const { customers } = useCustomerStore()
+  const { payments } = usePaymentStore()
+  const { purchases } = usePurchaseStore()
   const [activeTab, setActiveTab] = useState('profile')
   const [saving, setSaving] = useState(false)
-  const [notifSettings, setNotifSettings] = useState([
-    { id: 'n1', label: 'Invoice paid notification', desc: 'Get notified when a customer pays an invoice', enabled: true },
-    { id: 'n2', label: 'Payment overdue alert', desc: 'Alert when invoices become overdue', enabled: true },
-    { id: 'n3', label: 'GST filing reminder', desc: 'Reminder before GST due dates', enabled: true },
-    { id: 'n4', label: 'WhatsApp reminder sent', desc: 'Confirmation when reminder is delivered', enabled: false },
-    { id: 'n5', label: 'New accountant access', desc: 'When accountant logs in to your portal', enabled: true },
-    { id: 'n6', label: 'Weekly summary', desc: 'Weekly email digest of business activity', enabled: false },
-  ])
 
   const save = (fn: () => void) => {
     setSaving(true)
@@ -41,6 +46,91 @@ export function SettingsClient() {
       setSaving(false)
       addToast({ type: 'success', title: 'Settings saved' })
     }, 500)
+  }
+
+  const handleExport = (type: string) => {
+    const now = new Date()
+    const month = now.getMonth() + 1
+    const year = now.getFullYear()
+    switch (type) {
+      case 'invoices': {
+        const rows = invoices.map((inv) => ({
+          'Invoice No': inv.invoiceNumber,
+          'Date': inv.invoiceDate,
+          'Customer': inv.customerSnapshot.name,
+          'GSTIN': inv.customerSnapshot.gstin || '',
+          'Supply Type': inv.supplyType,
+          'Taxable Value': inv.taxableValue,
+          'CGST': inv.cgstTotal,
+          'SGST': inv.sgstTotal,
+          'IGST': inv.igstTotal,
+          'Total Tax': inv.totalTax,
+          'Grand Total': inv.grandTotal,
+          'Status': inv.status,
+        }))
+        downloadCSV(rows, `Invoices_${year}.csv`)
+        addToast({ type: 'success', title: 'Invoices exported', message: `${rows.length} records` })
+        break
+      }
+      case 'customers': {
+        const rows = customers.map((c) => ({
+          'Name': c.name,
+          'GSTIN': c.gstin || '',
+          'Email': c.email || '',
+          'Phone': c.phone || '',
+          'State': c.billingAddress.state,
+          'City': c.billingAddress.city,
+          'Total Invoiced': c.totalInvoiced || 0,
+          'Total Paid': c.totalPaid || 0,
+        }))
+        downloadCSV(rows, 'Customers.csv')
+        addToast({ type: 'success', title: 'Customers exported', message: `${rows.length} records` })
+        break
+      }
+      case 'payments': {
+        const rows = payments.map((p) => ({
+          'Date': p.paymentDate,
+          'Invoice ID': p.invoiceId || '',
+          'Amount': p.amount,
+          'Method': p.method,
+          'Reference': p.reference || '',
+          'Is Advance': p.isAdvance ? 'Yes' : 'No',
+        }))
+        downloadCSV(rows, `Payments_${year}.csv`)
+        addToast({ type: 'success', title: 'Payments exported', message: `${rows.length} records` })
+        break
+      }
+      case 'gstr1': {
+        const summary = calculateGSTR1Summary(invoices, { month, year })
+        downloadJSON(summary, `GSTR1_${year}_${String(month).padStart(2, '0')}.json`)
+        addToast({ type: 'success', title: 'GSTR-1 JSON exported' })
+        break
+      }
+      case 'gstr3b': {
+        const rows = purchases.map((p) => ({
+          'Vendor': p.vendorSnapshot.name,
+          'GSTIN': p.vendorSnapshot.gstin || '',
+          'Invoice No': p.vendorInvoiceNumber,
+          'Date': p.invoiceDate,
+          'Taxable': p.taxableValue,
+          'CGST': p.cgstTotal,
+          'SGST': p.sgstTotal,
+          'IGST': p.igstTotal,
+          'ITC Status': p.itcStatus,
+        }))
+        downloadCSV(rows, `GSTR3B_Purchases_${year}_${String(month).padStart(2, '0')}.csv`)
+        addToast({ type: 'success', title: 'GSTR-3B data exported' })
+        break
+      }
+      default:
+        addToast({ type: 'info', title: 'Export coming soon' })
+    }
+  }
+
+  const handleClearDemoData = () => {
+    if (!window.confirm('This will delete ALL invoices, customers, payments, and purchases. Settings will be preserved. Are you sure?')) return
+    setInvoices([])
+    addToast({ type: 'success', title: 'Demo data cleared', message: 'All records removed. Settings preserved.' })
   }
 
   return (
@@ -245,26 +335,11 @@ export function SettingsClient() {
               </div>
             )}
 
+            {/* Branches */}
+            {activeTab === 'branches' && <BranchManagement />}
+
             {/* Team */}
-            {activeTab === 'team' && (
-              <div className="p-5 flex flex-col gap-4">
-                <div className="rounded-xl p-4 flex items-center justify-between"
-                  style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)' }}>
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Prakash Agarwal</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>prakash@example.com · Owner</p>
-                  </div>
-                  <span className="px-2 py-1 rounded text-[11px] font-medium bg-brand-50 text-brand-700">Owner</span>
-                </div>
-                <button className="self-start px-4 py-2 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
-                  style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
-                  + Invite Team Member
-                </button>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  Invite accountants or staff members with read-only or limited access. Team members can be assigned roles: Owner, Admin, Accountant, Staff.
-                </p>
-              </div>
-            )}
+            {activeTab === 'team' && <UserManagement />}
 
             {/* Integrations */}
             {activeTab === 'integrations' && (
@@ -302,7 +377,7 @@ export function SettingsClient() {
             {/* Notifications */}
             {activeTab === 'notifications' && (
               <div className="p-5 flex flex-col gap-3">
-                {notifSettings.map((notif) => (
+                {(settings.notificationSettings ?? []).map((notif) => (
                   <div key={notif.id} className="flex items-center justify-between p-4 rounded-xl"
                     style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)' }}>
                     <div>
@@ -310,7 +385,11 @@ export function SettingsClient() {
                       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{notif.desc}</p>
                     </div>
                     <div
-                      onClick={() => setNotifSettings((prev) => prev.map((n) => n.id === notif.id ? { ...n, enabled: !n.enabled } : n))}
+                      onClick={() => updateSettings({
+                        notificationSettings: (settings.notificationSettings ?? []).map((n) =>
+                          n.id === notif.id ? { ...n, enabled: !n.enabled } : n
+                        )
+                      })}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full cursor-pointer transition-colors ${notif.enabled ? 'bg-brand-600' : 'bg-ink-200'}`}>
                       <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${notif.enabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
                     </div>
@@ -325,15 +404,15 @@ export function SettingsClient() {
                 <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Export Data</h3>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {[
-                    { label: 'All Invoices (Excel)', desc: 'Export complete invoice data' },
-                    { label: 'Customer List (CSV)', desc: 'Export all customer records' },
-                    { label: 'Payment History (Excel)', desc: 'All payment transactions' },
-                    { label: 'GSTR-1 JSON', desc: 'GST return data for upload' },
-                    { label: 'GSTR-3B Excel', desc: 'Summary return worksheet' },
-                    { label: 'Tax Ledger (PDF)', desc: 'Complete tax summary report' },
+                    { key: 'invoices', label: 'All Invoices (CSV)', desc: `${invoices.length} records` },
+                    { key: 'customers', label: 'Customer List (CSV)', desc: `${customers.length} records` },
+                    { key: 'payments', label: 'Payment History (CSV)', desc: `${payments.length} records` },
+                    { key: 'gstr1', label: 'GSTR-1 JSON', desc: 'Current month — GST portal upload' },
+                    { key: 'gstr3b', label: 'GSTR-3B Purchases (CSV)', desc: 'Purchase register for ITC' },
+                    { key: 'taxledger', label: 'Tax Ledger (PDF)', desc: 'Coming soon' },
                   ].map((exp) => (
-                    <button key={exp.label}
-                      onClick={() => addToast({ type: 'success', title: 'Export started', message: exp.label })}
+                    <button key={exp.key}
+                      onClick={() => handleExport(exp.key)}
                       className="flex items-center gap-3 p-4 rounded-xl text-left hover:bg-ink-50 transition-colors"
                       style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)' }}>
                       <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center text-brand-600 text-xs font-bold flex-shrink-0">↓</div>
@@ -348,7 +427,7 @@ export function SettingsClient() {
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
                   <h3 className="text-sm font-semibold mb-3 text-err-600">Danger Zone</h3>
                   <div className="flex flex-col gap-3">
-                    <button className="self-start px-4 py-2 rounded-lg border border-err-200 text-err-600 text-sm font-medium hover:bg-err-50 transition-colors">
+                    <button onClick={handleClearDemoData} className="self-start px-4 py-2 rounded-lg border border-err-200 text-err-600 text-sm font-medium hover:bg-err-50 transition-colors">
                       Clear All Demo Data
                     </button>
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>This will remove all mock/demo data and reset the app. Your settings will be preserved.</p>

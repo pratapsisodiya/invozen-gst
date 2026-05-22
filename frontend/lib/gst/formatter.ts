@@ -25,6 +25,11 @@ export function formatAmountInWords(amount: number): string {
 
   if (rupees === 0 && paise === 0) return 'Zero Rupees Only'
 
+  // For very large amounts (>= 100 crore) fall back to numeric display
+  if (rupees >= 10000000000) {
+    return `Rupees ${rupees.toLocaleString('en-IN')} Only`
+  }
+
   let words = ''
 
   const crore = Math.floor(rupees / 10000000)

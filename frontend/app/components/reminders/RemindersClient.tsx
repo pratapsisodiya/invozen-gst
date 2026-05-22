@@ -2,11 +2,14 @@
 import { useState, useMemo } from 'react'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
 import { useCustomerStore } from '@/lib/store/customerStore'
+import { useBusinessStore } from '@/lib/store/businessStore'
 import { useUIStore } from '@/lib/store/uiStore'
+import { shareInvoiceViaWhatsApp } from '@/lib/whatsapp/whatsappShare'
 import { TopBar } from '../app/TopBar'
 import { Tabs } from '../ui/Tabs'
+import { BulkReminderClient } from './BulkReminderClient'
 import { formatDate } from '@/lib/utils/formatters'
-import { MessageCircle, Send, Clock, AlertTriangle, CheckCircle2, Settings, ChevronDown, ChevronUp } from 'lucide-react'
+import { MessageCircle, Send, Clock, AlertTriangle, CheckCircle2, Settings, ChevronDown, ChevronUp, Sparkles, Loader2 } from 'lucide-react'
 
 const TEMPLATES = [
   {
@@ -91,12 +94,14 @@ const PRIORITY_CONFIG: Record<Priority, { label: string; color: string; bg: stri
 export function RemindersClient() {
   const { invoices } = useInvoiceStore()
   const { customers } = useCustomerStore()
+  const { profile } = useBusinessStore()
   const { addToast } = useUIStore()
 
   const [activeTab, setActiveTab] = useState('pending')
   const [sent, setSent] = useState<Set<string>>(new Set())
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null)
   const [templates, setTemplates] = useState(TEMPLATES)
+  const [aiDrafting, setAiDrafting] = useState<string | null>(null)
   const [automationRules, setAutomationRules] = useState([
     { id: 'r1', label: '1 day before due date', sublabel: 'Early reminder to customer', enabled: true },
     { id: 'r2', label: 'On due date', sublabel: 'Due today reminder', enabled: true },
@@ -139,21 +144,75 @@ export function RemindersClient() {
 
   const sentLog = useMemo(() => [...sent], [sent])
 
-  const handleSend = (invoiceId: string, customerName: string, amount: number) => {
-    setSent((prev) => new Set([...prev, invoiceId]))
-    addToast({ type: 'success', title: 'Reminder sent', message: `WhatsApp reminder sent to ${customerName}` })
+  const handleSend = (rem: PendingReminder) => {
+    const inv = invoices.find((i) => i.id === rem.invoiceId)
+    const cust = customers.find((c) => c.id === rem.customerId)
+    const phone = cust?.phone?.replace(/\D/g, '') ?? ''
+    if (!phone) {
+      addToast({ type: 'error', title: 'No phone number for this customer' })
+      return
+    }
+    if (inv) {
+      shareInvoiceViaWhatsApp(inv, phone, profile.businessName, '')
+    }
+    setSent((prev) => new Set([...prev, rem.invoiceId]))
+    addToast({ type: 'success', title: 'Reminder sent', message: `WhatsApp opened for ${rem.customerName}` })
+  }
+
+  const handleAIDraft = async (rem: PendingReminder) => {
+    setAiDrafting(rem.invoiceId)
+    try {
+      const cust = customers.find((c) => c.id === rem.customerId)
+      const phone = cust?.phone?.replace(/\D/g, '') ?? ''
+      const daysPast = Math.floor((Date.now() - new Date(rem.dueDate).getTime()) / 86400000)
+      const res = await fetch('/api/ai/draft-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: rem.customerName,
+          invoiceNumber: rem.invoiceNumber,
+          amount: rem.amount,
+          dueDate: rem.dueDate,
+          daysPastDue: Math.max(0, daysPast),
+          businessName: profile.businessName,
+          previousReminderCount: sent.has(rem.invoiceId) ? 1 : 0,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      const data = await res.json() as { message: string }
+      if (phone) {
+        const encoded = encodeURIComponent(data.message)
+        window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank')
+        setSent((prev) => new Set([...prev, rem.invoiceId]))
+      } else {
+        addToast({ type: 'info', title: 'AI Reminder', message: 'No phone number — message copied to clipboard' })
+        void navigator.clipboard.writeText(data.message)
+      }
+    } catch {
+      addToast({ type: 'error', title: 'AI draft failed', message: 'Sending standard WhatsApp instead' })
+      handleSend(rem)
+    } finally {
+      setAiDrafting(null)
+    }
   }
 
   const handleSendAll = () => {
     const overdueInvs = pending.filter((r) => ['urgent', 'overdue'].includes(r.priority))
-    overdueInvs.forEach((r) => setSent((prev) => new Set([...prev, r.invoiceId])))
-    addToast({ type: 'success', title: `${overdueInvs.length} reminders sent`, message: 'All overdue reminders dispatched' })
+    overdueInvs.forEach((r) => {
+      const cust = customers.find((c) => c.id === r.customerId)
+      const phone = cust?.phone?.replace(/\D/g, '') ?? ''
+      const inv = invoices.find((i) => i.id === r.invoiceId)
+      if (phone && inv) shareInvoiceViaWhatsApp(inv, phone, profile.businessName, '')
+      setSent((prev) => new Set([...prev, r.invoiceId]))
+    })
+    addToast({ type: 'success', title: `${overdueInvs.length} reminders sent`, message: 'WhatsApp opened for all overdue' })
   }
 
   const overdueCount = pending.filter((r) => ['urgent', 'overdue'].includes(r.priority)).length
 
   const tabs = [
     { key: 'pending', label: 'Pending', count: pending.filter((r) => !sent.has(r.invoiceId)).length },
+    { key: 'bulk', label: 'Bulk WhatsApp' },
     { key: 'templates', label: 'Templates' },
     { key: 'automation', label: 'Automation' },
     { key: 'sent', label: 'Sent Log', count: sent.size },
@@ -220,16 +279,31 @@ export function RemindersClient() {
                             <CheckCircle2 className="w-4 h-4" /> Sent
                           </span>
                         ) : (
-                          <button onClick={() => handleSend(r.invoiceId, r.customerName, r.amount)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition-colors flex-shrink-0">
-                            <MessageCircle className="w-3.5 h-3.5" /> Send
-                          </button>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button onClick={() => void handleAIDraft(r)} disabled={aiDrafting === r.invoiceId}
+                              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border text-xs font-medium hover:bg-brand-50 disabled:opacity-50 transition-colors"
+                              style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+                              {aiDrafting === r.invoiceId ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-brand-600" />}
+                              AI
+                            </button>
+                            <button onClick={() => handleSend(r)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition-colors">
+                              <MessageCircle className="w-3.5 h-3.5" /> Send
+                            </button>
+                          </div>
                         )}
                       </div>
                     )
                   })}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Bulk WhatsApp tab */}
+          {activeTab === 'bulk' && (
+            <div className="p-5">
+              <BulkReminderClient />
             </div>
           )}
 

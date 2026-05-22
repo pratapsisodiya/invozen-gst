@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import AnimatedSection from "@/app/components/ui/AnimatedSection";
 import { CheckIcon, ArrowRightIcon } from "@/app/components/ui/Icons";
@@ -155,14 +156,14 @@ export default function PricingSection() {
               </ul>
 
               <div className="mt-auto flex flex-col gap-3">
-                <a
-                  href="#signup"
+                <Link
+                  href="/signup"
                   className="btn-glow flex items-center justify-center gap-2 w-full py-3.5 bg-brand-600 text-white text-sm font-extrabold rounded-2xl"
                   style={{ boxShadow: "var(--shadow-brand)" }}
                 >
                   Start Free 14-Day Trial
                   <ArrowRightIcon size={16} strokeWidth={2.5} />
-                </a>
+                </Link>
                 <p className="text-center text-xs" style={{ color: "var(--text-faint)" }}>
                   No credit card required · Cancel anytime
                 </p>

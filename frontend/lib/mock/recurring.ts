@@ -85,16 +85,16 @@ export const mockRecurringTemplates: RecurringTemplate[] = [
 ]
 
 export const mockRecurringLogs: RecurringLog[] = [
-  { id: 'rl-01', templateId: 'rec-01', invoiceId: 'inv-004', invoiceNumber: 'PE-2025-004', generatedAt: '2024-11-01T08:00:00Z', status: 'generated', error: null },
-  { id: 'rl-02', templateId: 'rec-01', invoiceId: 'inv-023', invoiceNumber: 'PE-2025-023', generatedAt: '2024-12-01T08:00:00Z', status: 'generated', error: null },
-  { id: 'rl-03', templateId: 'rec-01', invoiceId: 'inv-040', invoiceNumber: 'PE-2025-040', generatedAt: '2025-01-01T08:00:00Z', status: 'generated', error: null },
-  { id: 'rl-04', templateId: 'rec-01', invoiceId: 'inv-004', invoiceNumber: 'PE-2025-004', generatedAt: '2025-02-01T08:00:00Z', status: 'sent', error: null },
-  { id: 'rl-05', templateId: 'rec-02', invoiceId: 'inv-003', invoiceNumber: 'PE-2025-003', generatedAt: '2024-10-01T08:00:00Z', status: 'sent', error: null },
-  { id: 'rl-06', templateId: 'rec-02', invoiceId: 'inv-025', invoiceNumber: 'PE-2025-025', generatedAt: '2025-01-01T08:00:00Z', status: 'sent', error: null },
-  { id: 'rl-07', templateId: 'rec-03', invoiceId: 'inv-021', invoiceNumber: 'PE-2025-021', generatedAt: '2024-09-01T08:00:00Z', status: 'generated', error: null },
-  { id: 'rl-08', templateId: 'rec-03', invoiceId: 'inv-021', invoiceNumber: 'PE-2025-021', generatedAt: '2024-10-01T08:00:00Z', status: 'generated', error: null },
-  { id: 'rl-09', templateId: 'rec-03', invoiceId: 'inv-021', invoiceNumber: 'PE-2025-021', generatedAt: '2024-11-01T08:00:00Z', status: 'generated', error: null },
-  { id: 'rl-10', templateId: 'rec-03', invoiceId: 'inv-021', invoiceNumber: 'PE-2025-021', generatedAt: '2024-12-01T08:00:00Z', status: 'generated', error: null },
-  { id: 'rl-11', templateId: 'rec-03', invoiceId: 'inv-032', invoiceNumber: 'PE-2025-032', generatedAt: '2025-01-01T08:00:00Z', status: 'generated', error: null },
-  { id: 'rl-12', templateId: 'rec-03', invoiceId: 'inv-032', invoiceNumber: 'PE-2025-032', generatedAt: '2025-02-01T08:00:00Z', status: 'failed', error: 'Client paused before generation' },
+  { id: 'rl-01', templateId: 'rec-01', invoiceId: 'inv-004', invoiceNumber: 'PE-2025-004', generatedAt: '2024-11-01T08:00:00Z', status: 'generated', error: null, triggeredBy: 'manual' },
+  { id: 'rl-02', templateId: 'rec-01', invoiceId: 'inv-023', invoiceNumber: 'PE-2025-023', generatedAt: '2024-12-01T08:00:00Z', status: 'generated', error: null, triggeredBy: 'manual' },
+  { id: 'rl-03', templateId: 'rec-01', invoiceId: 'inv-040', invoiceNumber: 'PE-2025-040', generatedAt: '2025-01-01T08:00:00Z', status: 'generated', error: null, triggeredBy: 'manual' },
+  { id: 'rl-04', templateId: 'rec-01', invoiceId: 'inv-004', invoiceNumber: 'PE-2025-004', generatedAt: '2025-02-01T08:00:00Z', status: 'sent', error: null, triggeredBy: 'manual' },
+  { id: 'rl-05', templateId: 'rec-02', invoiceId: 'inv-003', invoiceNumber: 'PE-2025-003', generatedAt: '2024-10-01T08:00:00Z', status: 'sent', error: null, triggeredBy: 'manual' },
+  { id: 'rl-06', templateId: 'rec-02', invoiceId: 'inv-025', invoiceNumber: 'PE-2025-025', generatedAt: '2025-01-01T08:00:00Z', status: 'sent', error: null, triggeredBy: 'manual' },
+  { id: 'rl-07', templateId: 'rec-03', invoiceId: 'inv-021', invoiceNumber: 'PE-2025-021', generatedAt: '2024-09-01T08:00:00Z', status: 'generated', error: null, triggeredBy: 'auto' },
+  { id: 'rl-08', templateId: 'rec-03', invoiceId: 'inv-021', invoiceNumber: 'PE-2025-021', generatedAt: '2024-10-01T08:00:00Z', status: 'generated', error: null, triggeredBy: 'auto' },
+  { id: 'rl-09', templateId: 'rec-03', invoiceId: 'inv-021', invoiceNumber: 'PE-2025-021', generatedAt: '2024-11-01T08:00:00Z', status: 'generated', error: null, triggeredBy: 'auto' },
+  { id: 'rl-10', templateId: 'rec-03', invoiceId: 'inv-021', invoiceNumber: 'PE-2025-021', generatedAt: '2024-12-01T08:00:00Z', status: 'generated', error: null, triggeredBy: 'auto' },
+  { id: 'rl-11', templateId: 'rec-03', invoiceId: 'inv-032', invoiceNumber: 'PE-2025-032', generatedAt: '2025-01-01T08:00:00Z', status: 'generated', error: null, triggeredBy: 'auto' },
+  { id: 'rl-12', templateId: 'rec-03', invoiceId: 'inv-032', invoiceNumber: 'PE-2025-032', generatedAt: '2025-02-01T08:00:00Z', status: 'failed', error: 'Client paused before generation', triggeredBy: 'auto' },
 ]

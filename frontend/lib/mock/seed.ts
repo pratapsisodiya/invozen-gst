@@ -1,3 +1,4 @@
+import { useBusinessStore } from '../store/businessStore'
 import { useCustomerStore } from '../store/customerStore'
 import { useItemStore } from '../store/itemStore'
 import { useInvoiceStore } from '../store/invoiceStore'
@@ -19,6 +20,9 @@ import { mockRecurringTemplates, mockRecurringLogs } from './recurring'
 import { mockQuotations } from './quotations'
 
 export function seedMockData() {
+  // Skip if already seeded — prevents partial re-seeding on repeated calls
+  if (useBusinessStore.getState().isSeeded) return
+
   const customerStore = useCustomerStore.getState()
   const itemStore = useItemStore.getState()
   const invoiceStore = useInvoiceStore.getState()
@@ -41,4 +45,7 @@ export function seedMockData() {
   if (recurringStore.templates.length === 0) recurringStore.setTemplates(mockRecurringTemplates)
   if (recurringStore.logs.length === 0) recurringStore.setLogs(mockRecurringLogs)
   if (quotationStore.quotations.length === 0) quotationStore.setQuotations(mockQuotations)
+
+  // Mark as seeded so subsequent calls are no-ops
+  useBusinessStore.getState().setSeeded()
 }

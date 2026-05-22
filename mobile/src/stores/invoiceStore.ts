@@ -19,6 +19,8 @@ interface InvoiceState {
     overdue: number
     gstCollected: number
   }
+  markAsSent: (id: string) => void
+  markAsPaid: (id: string, amount: number) => void
 }
 
 const defaultFilter: InvoiceFilter = {
@@ -127,6 +129,23 @@ export const useInvoiceStore = create<InvoiceState>()(
 
         return { revenue, outstanding, overdue, gstCollected }
       },
+
+      markAsSent: (id) =>
+        set((state) => ({
+          invoices: state.invoices.map((inv) =>
+            inv.id === id && inv.status === 'draft' ? { ...inv, status: 'sent' } : inv
+          ),
+        })),
+
+      markAsPaid: (id, amount) =>
+        set((state) => ({
+          invoices: state.invoices.map((inv) => {
+            if (inv.id !== id) return inv
+            const amountPaid = Math.min(inv.grandTotal, (inv.amountPaid ?? 0) + amount)
+            const balanceDue = Math.max(0, inv.grandTotal - amountPaid)
+            return { ...inv, amountPaid, balanceDue, status: balanceDue === 0 ? 'paid' : inv.status }
+          }),
+        })),
     }),
     {
       name: 'invozen-invoices',

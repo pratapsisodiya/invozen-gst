@@ -1,24 +1,24 @@
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import { useEffect, useMemo } from 'react'
 import { useRouter } from 'expo-router'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withSpring,
 } from 'react-native-reanimated'
-import { FileText, Users, BarChart2, Bell, ChevronRight } from 'lucide-react-native'
+import { FileText, Users, BarChart2, Bell, ChevronRight, AlertTriangle } from 'lucide-react-native'
+import { generateComplianceEvents, daysUntilDue } from '@/lib/gst/complianceCalendar'
 import { useAuthStore } from '@/stores/authStore'
 import { useInvoiceStore } from '@/stores/invoiceStore'
-import { useCustomerStore } from '@/stores/customerStore'
 import { seedMockData } from '@/lib/mock/seed'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { TopBar } from '@/components/layout/TopBar'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { Colors, FontFamily, Radius, Shadow, Spacing } from '@/constants/theme'
+import { ServicesRoadmapBoard } from '@/components/services/ServicesRoadmapBoard'
+import { Colors, FontFamily, Radius, Shadow } from '@/constants/theme'
 
 function QuickActionButton({
   label, icon: Icon, color, bgColor, onPress, index,
@@ -64,9 +64,7 @@ function QuickActionButton({
 export default function DashboardScreen() {
   const { user } = useAuthStore()
   const router   = useRouter()
-  const insets   = useSafeAreaInsets()
   const invoices  = useInvoiceStore((s) => s.invoices)
-  const customers = useCustomerStore((s) => s.customers)
 
   useEffect(() => { seedMockData() }, [])
 
@@ -98,6 +96,8 @@ export default function DashboardScreen() {
     { label: 'GST Reports',  icon: BarChart2, path: '/reports',       color: Colors.ok600,    bgColor: Colors.ok50 },
     { label: 'Reminders',    icon: Bell,      path: '/notifications', color: Colors.warn600,  bgColor: Colors.warn50 },
   ]
+
+  const complianceSummary = useMemo(() => generateComplianceEvents({}), [])
 
   const kpiConfigs = [
     { title: 'Revenue',     value: `₹${formatCurrency(kpis.revenue)}`,     accentColor: Colors.brand600, trend: { value: 12, label: 'vs last' } },
@@ -148,6 +148,38 @@ export default function DashboardScreen() {
           ))}
         </View>
 
+        {/* Compliance Banner */}
+        {(complianceSummary.overdue.length > 0 ||
+          (complianceSummary.nextDue !== null && daysUntilDue(complianceSummary.nextDue.dueDate) <= 7)) && (
+          <Pressable
+            style={[
+              styles.complianceBanner,
+              complianceSummary.overdue.length > 0 ? styles.complianceBannerRed : styles.complianceBannerAmber,
+            ]}
+            onPress={() => router.push('/compliance' as any)}
+          >
+            <AlertTriangle
+              size={16}
+              color={complianceSummary.overdue.length > 0 ? Colors.err600 : Colors.warn600}
+              strokeWidth={2}
+            />
+            <Text style={[
+              styles.complianceBannerText,
+              { color: complianceSummary.overdue.length > 0 ? Colors.err600 : Colors.warn600 },
+            ]}>
+              {complianceSummary.overdue.length > 0
+                ? `${complianceSummary.overdue.length} overdue filing${complianceSummary.overdue.length > 1 ? 's' : ''} — tap to review`
+                : complianceSummary.nextDue
+                  ? `${complianceSummary.nextDue.type} due in ${daysUntilDue(complianceSummary.nextDue.dueDate)} days`
+                  : ''}
+            </Text>
+            <ChevronRight
+              size={14}
+              color={complianceSummary.overdue.length > 0 ? Colors.err600 : Colors.warn600}
+            />
+          </Pressable>
+        )}
+
         {/* Quick Actions */}
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionsRow}>
@@ -163,6 +195,12 @@ export default function DashboardScreen() {
             />
           ))}
         </View>
+
+        <ServicesRoadmapBoard
+          eyebrow="CA Priority Board"
+          title="What your business will ask for next"
+          description="Static roadmap for the next compliance services layer after invoicing and filing."
+        />
 
         {/* Recent Invoices */}
         <View style={styles.sectionHeader}>
@@ -246,7 +284,20 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 4 },
+  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12 },
+
+  complianceBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  complianceBannerRed:   { backgroundColor: '#fef2f2', borderColor: '#fecaca' },
+  complianceBannerAmber: { backgroundColor: '#fffbeb', borderColor: '#fde68a' },
+  complianceBannerText:  { flex: 1, fontSize: 13, fontFamily: FontFamily.medium },
   kpiHalf: { width: '47.5%' },
 
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 12 },

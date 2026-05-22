@@ -1,7 +1,9 @@
+import Link from "next/link";
 import MobileMenu from "@/app/components/layout/MobileMenu";
 
 const navLinks = [
   { label: "Features", href: "#features" },
+  { label: "Services", href: "#services" },
   { label: "Pricing", href: "#pricing" },
   { label: "For Accountants", href: "#for-accountants" },
   { label: "GST Guide", href: "#gst-guide" },
@@ -23,7 +25,7 @@ export default function Header() {
       <div className="container-page">
         <div className="flex items-center justify-between h-14 gap-4">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2.5 shrink-0 group">
+          <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
             <LogoMark />
             <span className="font-extrabold text-[1.1rem] tracking-tight text-ink-900 leading-none">
               Invozen
@@ -34,7 +36,7 @@ export default function Header() {
             >
               GST
             </span>
-          </a>
+          </Link>
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-0.5" role="navigation">
@@ -52,19 +54,19 @@ export default function Header() {
 
           {/* Desktop CTAs */}
           <div className="hidden lg:flex items-center gap-2">
-            <a
-              href="#login"
+            <Link
+              href="/login"
               className="px-4 py-2 text-sm font-semibold rounded-lg transition-all hover:bg-ink-100 text-ink-600"
             >
               Log in
-            </a>
-            <a
-              href="#pricing"
+            </Link>
+            <Link
+              href="/signup"
               className="btn-glow inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white text-sm font-bold rounded-xl"
               style={{ boxShadow: "0 2px 8px rgba(13,148,136,0.25)" }}
             >
               Start Free →
-            </a>
+            </Link>
           </div>
 
           {/* Mobile */}

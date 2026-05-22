@@ -6,9 +6,10 @@ import { MONTH_NAMES } from '@/lib/gst/constants'
 
 interface RevenueChartProps {
   invoices: Invoice[]
+  onBarClick?: (month: number, year: number) => void
 }
 
-export function RevenueChart({ invoices }: RevenueChartProps) {
+export function RevenueChart({ invoices, onBarClick }: RevenueChartProps) {
   const data = useMemo(() => {
     const now = new Date()
     return Array.from({ length: 6 }, (_, i) => {
@@ -21,7 +22,7 @@ export function RevenueChart({ invoices }: RevenueChartProps) {
       })
       const revenue = monthInvoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.grandTotal, 0)
       const gst = monthInvoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.totalTax, 0)
-      return { month: MONTH_NAMES[m - 1].slice(0, 3), revenue, gst }
+      return { month: MONTH_NAMES[m - 1].slice(0, 3), monthNum: m, year: y, revenue, gst }
     })
   }, [invoices])
 
@@ -39,7 +40,15 @@ export function RevenueChart({ invoices }: RevenueChartProps) {
           formatter={(value: any, name: any) => [`₹${Number(value ?? 0).toLocaleString('en-IN')}`, name === 'revenue' ? 'Revenue' : 'GST'] as any}
           cursor={{ fill: 'rgba(0,0,0,0.04)' }}
         />
-        <Bar dataKey="revenue" fill="#0d9488" radius={[3, 3, 0, 0]} maxBarSize={40} />
+        <Bar
+          dataKey="revenue"
+          fill="#0d9488"
+          radius={[3, 3, 0, 0]}
+          maxBarSize={40}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onClick={onBarClick ? (entry: any) => onBarClick(entry.monthNum, entry.year) : undefined}
+          style={onBarClick ? { cursor: 'pointer' } : undefined}
+        />
       </BarChart>
     </ResponsiveContainer>
   )

@@ -1,0 +1,345 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model BusinessProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id           String   @id
+  userId       String
+  name         String
+  businessType String   @default("b2b")
+  gstin        String?
+  data         Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, businessType])
+}
+
+model Item {
+  id        String   @id
+  userId    String
+  name      String
+  type      String   @default("product")
+  isActive  Boolean  @default(true)
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, type])
+}
+
+model Invoice {
+  id            String   @id
+  userId        String
+  invoiceNumber String
+  customerId    String
+  status        String
+  invoiceDate   String
+  data          Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, customerId])
+  @@index([userId, invoiceDate])
+}
+
+model Payment {
+  id          String   @id
+  userId      String
+  invoiceId   String
+  customerId  String
+  paymentDate String
+  data        Json
+  createdAt   DateTime @default(now())
+
+  @@index([userId, invoiceId])
+  @@index([userId, customerId])
+}
+
+model Vendor {
+  id        String   @id
+  userId    String
+  name      String
+  gstin     String?
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model PurchaseInvoice {
+  id            String   @id
+  userId        String
+  vendorId      String
+  status        String
+  itcStatus     String
+  invoiceDate   String
+  data          Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, vendorId])
+  @@index([userId, itcStatus])
+  @@index([userId, invoiceDate])
+}
+
+model Expense {
+  id        String   @id
+  userId    String
+  category  String
+  date      String
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, category])
+  @@index([userId, date])
+}
+
+model Quotation {
+  id              String   @id
+  userId          String
+  quotationNumber String
+  customerId      String
+  status          String
+  quotationDate   String
+  data            Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, customerId])
+}
+
+model CreditNote {
+  id              String   @id
+  userId          String
+  customerId      String
+  linkedInvoiceId String?
+  status          String
+  data            Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, customerId])
+}
+
+model DebitNote {
+  id               String   @id
+  userId           String
+  vendorId         String
+  linkedPurchaseId String?
+  status           String
+  data             Json
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, vendorId])
+}
+
+model RecurringTemplate {
+  id                 String   @id
+  userId             String
+  customerId         String
+  status             String
+  nextGenerationDate String
+  data               Json
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, customerId])
+}
+
+model RecurringLog {
+  id         String   @id
+  userId     String
+  templateId String
+  invoiceId  String
+  data       Json
+  createdAt  DateTime @default(now())
+
+  @@index([userId, templateId])
+}
+
+model Notification {
+  id        String   @id
+  userId    String
+  type      String
+  isRead    Boolean  @default(false)
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isRead])
+  @@index([userId, type])
+}
+
+model FilingRecord {
+  id        String   @id
+  userId    String
+  type      String
+  period    String
+  status    String
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, type])
+  @@index([userId, period])
+  @@index([userId, status])
+  @@unique([userId, type, period])
+}
+
+model AuditEntry {
+  id        String   @id
+  userId    String
+  entity    String
+  entityId  String
+  action    String
+  data      Json
+  createdAt DateTime @default(now())
+
+  @@index([userId, entity])
+  @@index([userId, entityId])
+}
+
+model Attachment {
+  id        String   @id
+  userId    String
+  entityId  String
+  data      Json
+  createdAt DateTime @default(now())
+
+  @@index([userId, entityId])
+}
+
+model InventoryMovement {
+  id            String   @id
+  userId        String
+  itemId        String
+  type          String
+  referenceType String?
+  data          Json
+  createdAt     DateTime @default(now())
+
+  @@index([userId, itemId])
+  @@index([userId, type])
+}
+
+model InventorySnapshot {
+  id           String   @id
+  userId       String
+  itemId       String
+  quantity     Float    @default(0)
+  reorderPoint Float?
+  data         Json
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, itemId])
+  @@index([userId])
+}
+
+model CAClient {
+  id        String   @id
+  userId    String
+  status    String   @default("active")
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+}
+
+model EWayBill {
+  id              String   @id
+  userId          String
+  ewayBillNumber  String?
+  status          String
+  generationType  String
+  invoiceId       String?
+  challanId       String?
+  transactionType String
+  subType         String
+  docType         String
+  docNumber       String
+  docDate         String
+  fromGstin       String
+  fromTradeName   String
+  fromAddress     String
+  fromPlace       String
+  fromPincode     String
+  fromStateCode   String
+  toGstin         String?
+  toTradeName     String
+  toAddress       String
+  toPlace         String
+  toPincode       String
+  toStateCode     String
+  hsnCode         String
+  productName     String
+  quantity        Float
+  unit            String
+  totalValue      Float
+  taxableAmount   Float
+  transportMode   String
+  vehicleNumber   String?
+  distance        Int
+  generatedDate   String?
+  validUpto       String?
+  extendedTimes   Int      @default(0)
+  partBUpdated    Boolean  @default(false)
+  cancelledDate   String?
+  cancelReason    String?
+  data            Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, ewayBillNumber])
+  @@index([userId, invoiceId])
+  @@index([userId, validUpto])
+  @@index([userId, generatedDate])
+  @@index([userId, docNumber])
+}
+
+model ConsolidatedEWayBill {
+  id               String   @id
+  userId           String
+  consEwayBillNo   String?
+  generatedDate    String?
+  validUpto        String?
+  status           String
+  vehicleNumber    String
+  transporterGstin String?
+  transporterName  String?
+  fromPlace        String
+  fromState        String
+  data             Json
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, consEwayBillNo])
+  @@index([userId, vehicleNumber])
+}

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Invozen GST is a GST invoicing and compliance workspace for Indian small businesses. It's a full-stack application with:
 - **Frontend**: Next.js 16.2.4 (App Router) with React 19, TypeScript, Tailwind CSS 4, Zustand for state management
 - **Backend**: Node.js (TypeScript) - currently minimal, most logic is client-side
-- **AI Integration**: Anthropic Claude SDK for GST assistance, HSN/SAC lookups, invoice validation, and business insights
+- **AI Integration**: Groq SDK (llama-3.3-70b-versatile) for GST assistance, HSN/SAC lookups, invoice validation, and business insights
 
 ## Architecture
 
@@ -110,7 +110,7 @@ import { Button } from '@/app/components/ui/Button'
 
 ## AI Features
 
-All AI routes require `ANTHROPIC_API_KEY` environment variable.
+All AI routes require `GROQ_API_KEY` environment variable (get free key at https://console.groq.com/keys).
 
 **Chat Assistant** (`/api/ai/chat`):
 - System prompt includes business context (revenue, outstanding, GST collected, ITC)

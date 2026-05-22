@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import Groq from 'groq-sdk'
 import { NextRequest } from 'next/server'
 
 interface HsnRequest {
@@ -6,14 +6,8 @@ interface HsnRequest {
   itemType: 'product' | 'service'
 }
 
-interface HsnResponse {
-  hsnCode: string
-  gstRate: number
-  reasoning: string
-}
-
 export async function POST(req: NextRequest) {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.GROQ_API_KEY) {
     return Response.json({ error: 'AI not configured' }, { status: 503 })
   }
 
@@ -25,26 +19,37 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const client = new Anthropic()
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 256,
-      system: `You are an Indian GST expert. Given an item description, suggest the most appropriate HSN code (for goods) or SAC code (for services) and the applicable GST rate.
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
-Rules:
-- HSN codes are 4-8 digits for goods
-- SAC codes are 6 digits starting with 99 for services
-- GST rates must be one of: 0, 5, 12, 18, 28
-- Return ONLY valid JSON: {"hsnCode": "...", "gstRate": ..., "reasoning": "..."}
-- Keep reasoning under 20 words
-- Do not add markdown or any text outside the JSON`,
-      messages: [{ role: 'user', content: `Item: ${body.description}\nType: ${body.itemType}` }],
+    const systemPrompt = `You are an Indian GST HSN/SAC code expert. Given a product or service description, return ONLY valid JSON with exactly these fields:
+- hsnCode: string (4-8 digit HSN for goods, 6-digit SAC starting with 99 for services)
+- gstRate: number (one of: 0, 5, 12, 18, 28)
+- reasoning: string (under 20 words explaining the code choice)
+
+Return ONLY the JSON object. No markdown, no explanation, no code fences.`
+
+    const userMessage = `${body.itemType === 'service' ? 'Service' : 'Product'}: "${body.description}"`
+
+    const response = await groq.chat.completions.create({
+      model: 'llama3-8b-8192',
+      max_tokens: 150,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
     })
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : ''
-    const parsed = JSON.parse(text.trim()) as HsnResponse
-    return Response.json(parsed)
-  } catch {
-    return Response.json({ error: 'Could not determine HSN code' }, { status: 422 })
+    let text = response.choices[0]?.message?.content ?? '{}'
+    text = text.replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim()
+
+    const parsed = JSON.parse(text)
+    return Response.json({
+      hsnCode: String(parsed.hsnCode ?? ''),
+      gstRate: Number(parsed.gstRate ?? 18),
+      reasoning: String(parsed.reasoning ?? ''),
+    })
+  } catch (err) {
+    console.error('[AI/hsn] Error:', err)
+    return Response.json({ error: 'Could not determine HSN code' }, { status: 500 })
   }
 }

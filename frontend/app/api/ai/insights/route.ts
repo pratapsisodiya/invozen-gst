@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import Groq from 'groq-sdk'
 import { NextRequest } from 'next/server'
 
 interface InsightsRequest {
@@ -30,8 +30,12 @@ interface InsightsResponse {
   insights: string[]
 }
 
+function stripJsonFences(text: string): string {
+  return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+}
+
 export async function POST(req: NextRequest) {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.GROQ_API_KEY) {
     return Response.json({ error: 'AI not configured' }, { status: 503 })
   }
 
@@ -61,11 +65,15 @@ GSTR-3B:
 - Net GST payable: ₹${body.gstr3b.netPayable.toLocaleString('en-IN')}`
 
   try {
-    const client = new Anthropic()
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
       max_tokens: 512,
-      system: `You are an Indian GST compliance expert. Analyze the GST report data and return 4-6 concise bullet-point insights. Focus on:
+      messages: [
+        {
+          role: 'system',
+          content: `You are an Indian GST compliance expert. Analyze the GST report data and return 4-6 concise bullet-point insights. Focus on:
 1. Compliance risks (missing HSN codes, high inter-state ratio, filing deadline)
 2. ITC optimization opportunities
 3. Notable trends or anomalies in the data
@@ -74,13 +82,24 @@ GSTR-3B:
 Return ONLY valid JSON: {"insights": ["insight 1", "insight 2", ...]}
 Each insight must be one sentence, under 120 characters, actionable.
 Do not include markdown or any text outside the JSON.`,
-      messages: [{ role: 'user', content: summary }],
+        },
+        { role: 'user', content: summary },
+      ],
     })
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : ''
-    const parsed = JSON.parse(text.trim()) as InsightsResponse
-    return Response.json(parsed)
-  } catch {
+    const raw = stripJsonFences(response.choices[0]?.message?.content ?? '{}')
+    try {
+      const parsed = JSON.parse(raw) as InsightsResponse
+      const insights = Array.isArray(parsed?.insights)
+        ? parsed.insights.filter((i): i is string => typeof i === 'string')
+        : []
+      return Response.json({ insights })
+    } catch (parseErr) {
+      console.error('[AI/insights] Parse error:', parseErr)
+      return Response.json({ error: 'Could not parse AI response' }, { status: 503 })
+    }
+  } catch (err) {
+    console.error('[AI/insights] Error:', err)
     return Response.json({ error: 'Could not generate insights' }, { status: 503 })
   }
 }

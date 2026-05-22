@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef } from "react";
 import AnimatedSection from "@/app/components/ui/AnimatedSection";
 import { CheckIcon, ArrowRightIcon, WhatsAppIcon } from "@/app/components/ui/Icons";
@@ -96,13 +97,13 @@ export default function FinalCTA() {
 
           <AnimatedSection delay={3}>
             <div className="flex flex-wrap gap-3 justify-center">
-              <a
-                href="#signup"
+              <Link
+                href="/signup"
                 className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-brand-700 text-sm font-extrabold rounded-2xl hover:bg-brand-50 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1"
               >
                 Start Free Trial
                 <ArrowRightIcon size={16} strokeWidth={2.5} />
-              </a>
+              </Link>
               <a
                 href="https://wa.me/919999999999?text=Hi, I want to try Invozen GST"
                 target="_blank"

@@ -3,7 +3,7 @@ import React from "react";
 type Variant = "primary" | "secondary" | "ghost" | "outline" | "white";
 type Size = "sm" | "md" | "lg";
 
-interface ButtonProps {
+interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
   variant?: Variant;
   size?: Size;
   href?: string;
@@ -40,6 +40,8 @@ export default function Button({
   className = "",
   target,
   rel,
+  type = "button",
+  ...rest
 }: ButtonProps) {
   const classes = [
     "inline-flex items-center justify-center font-medium",
@@ -62,7 +64,7 @@ export default function Button({
   }
 
   return (
-    <button type="button" className={classes}>
+    <button type={type} className={classes} {...rest}>
       {children}
     </button>
   );

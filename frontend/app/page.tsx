@@ -1,7 +1,5 @@
-'use client'
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/store/authStore'
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 import AnnouncementBar from "@/app/components/layout/AnnouncementBar";
 import Header from "@/app/components/layout/Header";
 import Footer from "@/app/components/layout/Footer";
@@ -17,18 +15,18 @@ import WhatsAppSection from "@/app/components/sections/WhatsAppSection";
 import MobileExperienceSection from "@/app/components/sections/MobileExperienceSection";
 import IndustryUseCases from "@/app/components/sections/IndustryUseCases";
 import AccountantSection from "@/app/components/sections/AccountantSection";
+import ServicesRoadmapSection from "@/app/components/sections/ServicesRoadmapSection";
 import ComplianceSection from "@/app/components/sections/ComplianceSection";
 import PricingSection from "@/app/components/sections/PricingSection";
 import FAQSection from "@/app/components/sections/FAQSection";
 import FinalCTA from "@/app/components/sections/FinalCTA";
 
-export default function Home() {
-  const { isAuthenticated } = useAuthStore()
-  const router = useRouter()
+export default async function Home() {
+  const { userId } = await auth()
 
-  useEffect(() => {
-    if (isAuthenticated) router.replace('/dashboard')
-  }, [isAuthenticated, router])
+  if (userId) {
+    redirect('/dashboard')
+  }
 
   return (
     <>
@@ -46,6 +44,7 @@ export default function Home() {
         <MobileExperienceSection />
         <IndustryUseCases />
         <AccountantSection />
+        <ServicesRoadmapSection />
         <ComplianceSection />
         <PricingSection />
         <FAQSection />

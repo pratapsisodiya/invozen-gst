@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/store/authStore'
 import { useBusinessStore } from '@/lib/store/businessStore'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
@@ -13,7 +12,6 @@ const STEPS = ['Business Profile', 'GST Details', 'Address', 'Invoice Settings',
 
 export function OnboardingWizard() {
   const [step, setStep] = useState(0)
-  const { completeOnboarding } = useAuthStore()
   const { profile, settings, updateProfile, updateSettings } = useBusinessStore()
   const router = useRouter()
 
@@ -21,7 +19,6 @@ export function OnboardingWizard() {
   const back = () => setStep((s) => Math.max(s - 1, 0))
 
   const finish = () => {
-    completeOnboarding()
     router.push('/dashboard')
   }
 

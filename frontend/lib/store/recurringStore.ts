@@ -6,6 +6,7 @@ import type { Invoice } from '../../types/invoice'
 import { generateId, generateInvoiceNumber } from '../utils/ids'
 import { useInvoiceStore } from './invoiceStore'
 import { useBusinessStore } from './businessStore'
+import { useNotificationStore } from './notificationStore'
 
 function advanceDate(dateStr: string, frequency: RecurringFrequency, customDays: number | null): string {
   const d = new Date(dateStr)
@@ -28,7 +29,8 @@ interface RecurringState {
   setTemplates: (templates: RecurringTemplate[]) => void
   pauseTemplate: (id: string, reason: string) => void
   resumeTemplate: (id: string) => void
-  generateNow: (templateId: string) => string | null
+  generateNow: (templateId: string, triggeredBy?: 'auto' | 'manual') => string | null
+  executeAllOverdue: () => { templateId: string; invoiceId: string | null }[]
   setLogs: (logs: RecurringLog[]) => void
 }
 
@@ -60,7 +62,7 @@ export const useRecurringStore = create<RecurringState>()(
           if (t) { t.status = 'active'; t.pausedReason = null; t.updatedAt = new Date().toISOString() }
         }),
 
-      generateNow: (templateId) => {
+      generateNow: (templateId, triggeredBy = 'manual') => {
         const tpl = get().templates.find((t) => t.id === templateId)
         if (!tpl || tpl.status !== 'active') return null
 
@@ -94,6 +96,7 @@ export const useRecurringStore = create<RecurringState>()(
           cgstTotal: tpl.lineItems.reduce((s, li) => s + li.cgst, 0),
           sgstTotal: tpl.lineItems.reduce((s, li) => s + li.sgst, 0),
           igstTotal: tpl.lineItems.reduce((s, li) => s + li.igst, 0),
+          cessTotal: tpl.lineItems.reduce((s, li) => s + (li.cessAmount ?? 0), 0),
           totalTax: tpl.lineItems.reduce((s, li) => s + li.cgst + li.sgst + li.igst, 0),
           grandTotal: tpl.lineItems.reduce((s, li) => s + li.totalAmount, 0),
           amountPaid: 0,
@@ -103,11 +106,27 @@ export const useRecurringStore = create<RecurringState>()(
           placeOfSupply: tpl.customerSnapshot.state,
           irnNumber: null,
           irnStatus: null,
+          tdsSection: null,
+          tdsRate: null,
+          tdsAmount: null,
+          amendedInvoiceId: null,
+          amendedInvoiceNumber: null,
+          amendmentReason: null,
+          currency: 'INR',
+          exchangeRate: 1,
+          attachmentIds: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }
 
         invoiceStore.addInvoice(invoice)
+
+        useNotificationStore.getState().addNotification({
+          type: 'invoice_paid',
+          title: 'Recurring Invoice Generated',
+          message: `${invoice.invoiceNumber} created from template "${tpl.name}"`,
+          linkUrl: `/invoices/${invoice.id}`,
+        })
 
         const log: RecurringLog = {
           id: generateId(),
@@ -116,6 +135,7 @@ export const useRecurringStore = create<RecurringState>()(
           invoiceNumber,
           generatedAt: new Date().toISOString(),
           status: 'generated',
+          triggeredBy,
           error: null,
         }
 
@@ -131,6 +151,19 @@ export const useRecurringStore = create<RecurringState>()(
         })
 
         return invoice.id
+      },
+
+      executeAllOverdue: () => {
+        const today = new Date().toISOString().split('T')[0]
+        const results: { templateId: string; invoiceId: string | null }[] = []
+        for (const template of get().templates) {
+          if (template.status !== 'active') continue
+          if (template.nextGenerationDate <= today) {
+            const invoiceId = get().generateNow(template.id, 'auto')
+            results.push({ templateId: template.id, invoiceId })
+          }
+        }
+        return results
       },
 
       setLogs: (logs) => set((state) => { state.logs = logs }),

@@ -1,5 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk'
+import Groq from 'groq-sdk'
 import { NextRequest } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
+import { rateLimitAI } from '@/lib/rateLimit'
 
 interface BusinessContext {
   businessName: string
@@ -45,8 +47,27 @@ You have deep knowledge of Indian GST law, GSTR-1, GSTR-3B, HSN/SAC codes, ITC r
 }
 
 export async function POST(req: NextRequest) {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.GROQ_API_KEY) {
     return Response.json({ error: 'AI not configured' }, { status: 503 })
+  }
+
+  // Rate limiting
+  const { userId } = await auth()
+  if (userId) {
+    const rateLimitResult = rateLimitAI(userId)
+    if (!rateLimitResult.success) {
+      return Response.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.reset.toISOString(),
+          },
+        }
+      )
+    }
   }
 
   let body: ChatRequest
@@ -57,14 +78,20 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const client = new Anthropic()
-    const stream = client.messages.stream({
-      model: 'claude-sonnet-4-6',
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+
+    const validHistory = (body.history ?? [])
+      .filter((m): m is HistoryMessage => m.role === 'user' || m.role === 'assistant')
+      .slice(-10)
+
+    const stream = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
       max_tokens: 1024,
-      system: buildSystemPrompt(body.context),
+      stream: true,
       messages: [
-        ...body.history.slice(-10).map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-        { role: 'user' as const, content: body.message },
+        { role: 'system', content: buildSystemPrompt(body.context) },
+        ...validHistory.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+        { role: 'user', content: body.message },
       ],
     })
 
@@ -73,10 +100,11 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         try {
           for await (const chunk of stream) {
-            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-              controller.enqueue(encoder.encode(chunk.delta.text))
-            }
+            const text = chunk.choices[0]?.delta?.content ?? ''
+            if (text) controller.enqueue(encoder.encode(text))
           }
+        } catch (streamErr) {
+          console.error('[AI/chat] Stream error:', streamErr)
         } finally {
           controller.close()
         }
@@ -86,7 +114,8 @@ export async function POST(req: NextRequest) {
     return new Response(readable, {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     })
-  } catch {
+  } catch (err) {
+    console.error('[AI/chat] Error:', err)
     return Response.json({ error: 'AI service unavailable' }, { status: 503 })
   }
 }

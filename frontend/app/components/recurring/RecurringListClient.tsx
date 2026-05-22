@@ -29,8 +29,17 @@ const STATUS_COLORS: Record<RecurringStatus, { bg: string; text: string }> = {
 }
 
 export function RecurringListClient() {
-  const { templates, generateNow, pauseTemplate, resumeTemplate, deleteTemplate } = useRecurringStore()
+  const { templates, logs, generateNow, pauseTemplate, resumeTemplate, deleteTemplate } = useRecurringStore()
   const { addToast } = useUIStore()
+
+  const recentAutoIds = useMemo(() => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000
+    return new Set(
+      logs
+        .filter((l) => l.triggeredBy === 'auto' && new Date(l.generatedAt).getTime() > cutoff)
+        .map((l) => l.templateId)
+    )
+  }, [logs])
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('all')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
@@ -100,7 +109,14 @@ export function RecurringListClient() {
                 return (
                   <tr key={t.id} onClick={() => router.push(`/recurring/${t.id}`)}
                     className="cursor-pointer hover:bg-ink-50 transition-colors" style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td className="px-4 py-3 font-medium" style={{ color: 'var(--text)' }}>{t.name}</td>
+                    <td className="px-4 py-3 font-medium" style={{ color: 'var(--text)' }}>
+                      <div className="flex items-center gap-1.5">
+                        {t.name}
+                        {recentAutoIds.has(t.id) && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: '#ECFDF5', color: '#059669' }}>Auto-drafted</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-2)' }}>{t.customerSnapshot.name}</td>
                     <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-2)' }}>{FREQUENCY_LABELS[t.frequency]}</td>
                     <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-2)' }}>{formatDate(t.nextGenerationDate)}</td>

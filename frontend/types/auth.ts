@@ -1,9 +1,11 @@
+export type UserRole = 'owner' | 'admin' | 'accountant' | 'viewer' | 'ca'
+
 export interface User {
   id: string
   name: string
   email: string
   phone: string
-  role: 'owner' | 'admin' | 'accountant' | 'viewer'
+  role: UserRole
   avatarInitials: string
   createdAt: string
 }

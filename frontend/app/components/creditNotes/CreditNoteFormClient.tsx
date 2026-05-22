@@ -17,7 +17,7 @@ import type { CreditNoteReason, CreditNote } from '@/types/creditNote'
 import type { LineItem } from '@/types/invoice'
 
 function emptyLine(supplyType: 'intra' | 'inter'): LineItem {
-  return { id: generateId(), itemId: null, description: '', hsnSac: '', quantity: 1, unit: 'NOS', rate: 0, discountPercent: 0, taxableValue: 0, gstRate: 18, cgst: 0, sgst: 0, igst: 0, totalAmount: 0 }
+  return { id: generateId(), itemId: null, description: '', hsnSac: '', quantity: 1, unit: 'NOS', rate: 0, discountPercent: 0, taxableValue: 0, gstRate: 18, cgst: 0, sgst: 0, igst: 0, cessRate: 0, cessAmount: 0, totalAmount: 0 }
 }
 
 export function CreditNoteFormClient() {

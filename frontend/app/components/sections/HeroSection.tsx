@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef } from "react";
 import AnimatedSection from "@/app/components/ui/AnimatedSection";
 import { CheckIcon, ArrowRightIcon, WhatsAppIcon } from "@/app/components/ui/Icons";
@@ -122,14 +123,14 @@ export default function HeroSection() {
             {/* CTAs */}
             <AnimatedSection delay={3}>
               <div className="flex flex-wrap gap-3 items-center">
-                <a
-                  href="#pricing"
+                <Link
+                  href="/signup"
                   className="btn-glow inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-600 text-white text-sm font-bold"
                   style={{ boxShadow: "0 2px 8px rgba(13,148,136,0.3)" }}
                 >
                   Start Free Trial
                   <ArrowRightIcon size={16} strokeWidth={2.5} />
-                </a>
+                </Link>
                 <a
                   href="#demo"
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold border transition-all hover:border-brand-400 hover:text-brand-700 hover:bg-brand-50"

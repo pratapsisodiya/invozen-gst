@@ -8,9 +8,11 @@ import { TopBar } from '../app/TopBar'
 import { SearchBar } from '../ui/SearchBar'
 import { Badge } from '../ui/Badge'
 import { AmountDisplay } from '../ui/AmountDisplay'
-import { Plus, CheckCircle, XCircle, MinusCircle } from 'lucide-react'
-import { formatDate } from '@/lib/utils/formatters'
-import { getInitials } from '@/lib/utils/formatters'
+import { Plus, CheckCircle, XCircle, MinusCircle, Upload } from 'lucide-react'
+import { formatDate, getInitials } from '@/lib/utils/formatters'
+import { AgingReportCard } from './AgingReportCard'
+import { Tabs } from '../ui/Tabs'
+import { BulkImportModal } from '../import/BulkImportModal'
 
 export function CustomerListClient() {
   const { customers } = useCustomerStore()
@@ -18,6 +20,8 @@ export function CustomerListClient() {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'b2b' | 'b2c' | 'export'>('all')
+  const [activeTab, setActiveTab] = useState('customers')
+  const [showImport, setShowImport] = useState(false)
 
   const filtered = useMemo(() =>
     customers.filter((c) => {
@@ -47,13 +51,32 @@ export function CustomerListClient() {
         title="Customers"
         breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }]}
         actions={
-          <Link href="/customers/new" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" /> Add Customer
-          </Link>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowImport(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
+              style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+              <Upload className="w-4 h-4" /> Import CSV
+            </button>
+            <Link href="/customers/new" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors">
+              <Plus className="w-4 h-4" /> Add Customer
+            </Link>
+          </div>
         }
       />
 
       <div className="flex-1 p-4 lg:p-6 flex flex-col gap-4">
+        {/* Main tabs */}
+        <div className="rounded-xl bg-white px-4 pt-3 pb-0" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <Tabs
+            tabs={[{ id: 'customers', label: 'Customers' }, { id: 'aging', label: 'Aging Report' }]}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+          />
+        </div>
+
+        {activeTab === 'aging' && <AgingReportCard />}
+
+        {activeTab === 'customers' && <>
         <div className="rounded-xl bg-white p-4 flex flex-wrap items-center gap-3" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
           <SearchBar value={search} onChange={setSearch} placeholder="Search by name, GSTIN, phone..." className="flex-1 min-w-[200px]" />
           <div className="flex gap-1">
@@ -149,7 +172,9 @@ export function CustomerListClient() {
             )
           })}
         </div>
+        </>}
       </div>
+      <BulkImportModal open={showImport} onClose={() => setShowImport(false)} defaultTab="customers" />
     </div>
   )
 }

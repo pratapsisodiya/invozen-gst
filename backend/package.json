@@ -1,13 +1,45 @@
 {
-  "name": "backend",
+  "name": "invozen-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Invozen GST REST API — Express + TypeScript + Prisma",
+  "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev --name init",
+    "db:studio": "prisma studio",
+    "migrate": "prisma migrate deploy",
+    "postinstall": "prisma generate",
+    "migration:create": "prisma migrate dev --create-only",
+    "migration:deploy": "prisma migrate deploy"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "dependencies": {
+    "@clerk/backend": "^1",
+    "@prisma/client": "^6",
+    "@types/multer": "^2.1.0",
+    "axios": "^1.16.0",
+    "cloudinary": "^2.10.0",
+    "cors": "^2",
+    "dotenv": "^16",
+    "express": "^4",
+    "express-rate-limit": "^8.5.0",
+    "helmet": "^8.1.0",
+    "morgan": "^1",
+    "multer": "^2.1.1",
+    "razorpay": "^2.9.6",
+    "winston": "^3",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2",
+    "@types/express": "^5",
+    "@types/morgan": "^1",
+    "@types/node": "^22",
+    "prisma": "^6",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
 }

@@ -9,9 +9,11 @@ import { Tabs } from '../ui/Tabs'
 import { AmountDisplay } from '../ui/AmountDisplay'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { formatDate } from '@/lib/utils/formatters'
-import { Plus, CheckCircle, Trash2 } from 'lucide-react'
+import { Plus, CheckCircle, Trash2, FileDown } from 'lucide-react'
 import { DEBIT_NOTE_REASON_LABELS } from '@/types/creditNote'
 import type { CreditNoteStatus } from '@/types/creditNote'
+import { useBusinessStore } from '@/lib/store/businessStore'
+import { downloadDebitNotePdf } from '@/lib/pdf/debitNotePdf'
 
 const STATUS_TABS = [
   { id: 'all', label: 'All' },
@@ -29,6 +31,7 @@ const STATUS_COLORS: Record<CreditNoteStatus, { bg: string; text: string }> = {
 export function DebitNoteListClient() {
   const { debitNotes, approveDebitNote, deleteDebitNote } = useCreditNoteStore()
   const { addToast } = useUIStore()
+  const { profile } = useBusinessStore()
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
@@ -96,6 +99,12 @@ export function DebitNoteListClient() {
                           <button onClick={() => { approveDebitNote(dn.id); addToast({ type: 'success', title: 'Debit note approved' }) }}
                             className="p-1.5 rounded hover:bg-green-50 transition-colors" title="Approve">
                             <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                          </button>
+                        )}
+                        {profile && (
+                          <button onClick={() => void downloadDebitNotePdf(dn, profile)}
+                            className="p-1.5 rounded hover:bg-brand-50 transition-colors" title="Download PDF">
+                            <FileDown className="w-3.5 h-3.5 text-brand-600" />
                           </button>
                         )}
                         <button onClick={() => setDeleteTarget(dn.id)} className="p-1.5 rounded hover:bg-err-50 transition-colors">

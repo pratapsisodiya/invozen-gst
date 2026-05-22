@@ -10,9 +10,11 @@ import { Tabs } from '../ui/Tabs'
 import { AmountDisplay } from '../ui/AmountDisplay'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { formatDate } from '@/lib/utils/formatters'
-import { Plus, CheckCircle, Trash2, Eye } from 'lucide-react'
+import { Plus, CheckCircle, Trash2, FileDown } from 'lucide-react'
 import { CREDIT_NOTE_REASON_LABELS } from '@/types/creditNote'
 import type { CreditNoteStatus } from '@/types/creditNote'
+import { useBusinessStore } from '@/lib/store/businessStore'
+import { downloadCreditNotePdf } from '@/lib/pdf/creditNotePdf'
 
 const STATUS_TABS = [
   { id: 'all', label: 'All' },
@@ -30,6 +32,7 @@ const STATUS_COLORS: Record<CreditNoteStatus, { bg: string; text: string }> = {
 export function CreditNoteListClient() {
   const { creditNotes, approveCreditNote, deleteCreditNote } = useCreditNoteStore()
   const { addToast } = useUIStore()
+  const { profile } = useBusinessStore()
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState('all')
@@ -103,6 +106,12 @@ export function CreditNoteListClient() {
                           <button onClick={() => { approveCreditNote(cn.id); addToast({ type: 'success', title: 'Credit note approved' }) }}
                             className="p-1.5 rounded hover:bg-green-50 transition-colors" title="Approve">
                             <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                          </button>
+                        )}
+                        {profile && (
+                          <button onClick={() => void downloadCreditNotePdf(cn, profile)}
+                            className="p-1.5 rounded hover:bg-brand-50 transition-colors" title="Download PDF">
+                            <FileDown className="w-3.5 h-3.5 text-brand-600" />
                           </button>
                         )}
                         <button onClick={() => setDeleteTarget(cn.id)} className="p-1.5 rounded hover:bg-err-50 transition-colors">

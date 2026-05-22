@@ -40,5 +40,6 @@ export interface RecurringLog {
   invoiceNumber: string
   generatedAt: string
   status: 'generated' | 'sent' | 'failed'
+  triggeredBy: 'auto' | 'manual'
   error: string | null
 }

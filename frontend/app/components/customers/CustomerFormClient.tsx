@@ -7,9 +7,12 @@ import { TopBar } from '../app/TopBar'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { GSTINInput } from '../ui/GSTINInput'
+import { AICustomerParserModal } from '../ai/AICustomerParserModal'
 import { generateId } from '@/lib/utils/ids'
 import type { Customer } from '@/types/customer'
 import { STATE_CODES } from '@/lib/gst/constants'
+import type { ParsedCustomer } from '@/app/api/ai/parse-customer/route'
+import { Sparkles } from 'lucide-react'
 
 const STATE_OPTIONS = Object.entries(STATE_CODES).map(([code, name]) => ({ value: code, label: name }))
 
@@ -33,10 +36,29 @@ export function CustomerFormClient({ editId }: { editId?: string }) {
     stateCode: editing?.billingAddress.stateCode || '',
     pincode: editing?.billingAddress.pincode || '',
     paymentTermsDays: editing?.paymentTermsDays || 30,
+    creditLimit: editing?.creditLimit != null ? String(editing.creditLimit) : '',
     notes: editing?.notes || '',
   })
   const [gstinState, setGstinState] = useState<{ state: string | null; stateCode: string | null }>({ state: null, stateCode: null })
   const [saving, setSaving] = useState(false)
+  const [showAIParser, setShowAIParser] = useState(false)
+
+  const applyParsed = (data: ParsedCustomer) => {
+    setForm((p) => ({
+      ...p,
+      name: data.name || p.name,
+      businessName: data.businessName || p.businessName,
+      gstin: data.gstin || p.gstin,
+      email: data.email || p.email,
+      phone: data.phone || p.phone,
+      state: data.state || p.state,
+      stateCode: data.stateCode || p.stateCode,
+      city: data.city || p.city,
+      line1: data.addressLine1 || p.line1,
+      pincode: data.pincode || p.pincode,
+      businessType: data.customerType as 'b2b' | 'b2c' | 'export' || p.businessType,
+    }))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,7 +77,7 @@ export function CustomerFormClient({ editId }: { editId?: string }) {
         businessType: form.businessType,
         billingAddress: { line1: form.line1, line2: null, city: form.city, state: form.state, stateCode: form.stateCode, pincode: form.pincode },
         shippingAddress: null,
-        creditLimit: null,
+        creditLimit: form.creditLimit ? parseFloat(form.creditLimit) : null,
         paymentTermsDays: form.paymentTermsDays,
         totalInvoiced: editing?.totalInvoiced || 0,
         totalPaid: editing?.totalPaid || 0,
@@ -79,7 +101,15 @@ export function CustomerFormClient({ editId }: { editId?: string }) {
       <TopBar
         title={editing ? `Edit ${editing.name}` : 'Add Customer'}
         breadcrumb={[{ label: 'Customers', href: '/customers' }]}
+        actions={!editing && (
+          <button type="button" onClick={() => setShowAIParser(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-brand-600 hover:bg-brand-50 transition-colors"
+            style={{ border: '1px solid var(--brand-200)' }}>
+            <Sparkles className="w-4 h-4" /> Fill from Text
+          </button>
+        )}
       />
+      <AICustomerParserModal open={showAIParser} onClose={() => setShowAIParser(false)} onApply={applyParsed} />
       <div className="flex-1 p-4 lg:p-6">
         <form onSubmit={handleSubmit} className="max-w-2xl mx-auto flex flex-col gap-5">
           <div className="rounded-xl bg-white p-5" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
@@ -109,6 +139,13 @@ export function CustomerFormClient({ editId }: { editId?: string }) {
                   }}
                 />
               )}
+              <Input
+                label="Credit Limit (₹)"
+                type="number"
+                value={form.creditLimit}
+                onChange={u('creditLimit')}
+                placeholder="Leave blank for no limit"
+              />
               <Select label="Payment Terms" value={String(form.paymentTermsDays)}
                 onChange={(e) => setForm((p) => ({ ...p, paymentTermsDays: Number(e.target.value) }))}
                 options={[

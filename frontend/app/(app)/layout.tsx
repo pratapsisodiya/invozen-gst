@@ -1,22 +1,18 @@
-'use client'
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/store/authStore'
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 import { AppShell } from '@/app/components/app/AppShell'
-import { seedMockData } from '@/lib/mock/seed'
+import { AppBootstrap } from '@/app/components/app/AppBootstrap'
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore()
-  const router = useRouter()
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const { userId } = await auth()
 
-  useEffect(() => {
-    if (!isAuthenticated) router.replace('/login')
-  }, [isAuthenticated, router])
+  if (!userId) {
+    redirect('/login')
+  }
 
-  useEffect(() => {
-    if (isAuthenticated) seedMockData()
-  }, [isAuthenticated])
-
-  if (!isAuthenticated) return null
-  return <AppShell>{children}</AppShell>
+  return (
+    <AppBootstrap>
+      <AppShell>{children}</AppShell>
+    </AppBootstrap>
+  )
 }

@@ -1,5 +1,5 @@
 export function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 14)}`
 }
 
 export function generateInvoiceNumber(prefix: string, counter: number): string {

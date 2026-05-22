@@ -57,7 +57,9 @@ export function validateGSTIN(gstin: string): GSTINValidationResult {
 }
 
 export function determineSupplyType(sellerStateCode: string, buyerStateCode: string): 'intra' | 'inter' {
-  if (!sellerStateCode || !buyerStateCode) return 'intra'
+  // Treat missing or empty state codes as intra-state (safe default)
+  if (typeof sellerStateCode !== 'string' || sellerStateCode.length < 2 ||
+      typeof buyerStateCode !== 'string' || buyerStateCode.length < 2) return 'intra'
   return sellerStateCode === buyerStateCode ? 'intra' : 'inter'
 }
 

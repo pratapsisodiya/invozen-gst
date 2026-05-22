@@ -45,3 +45,18 @@ export function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str
   return str.slice(0, maxLength - 3) + '...'
 }
+
+export function getDaysOverdue(dueDate: string): number {
+  const todayMs = new Date(new Date().toLocaleDateString('en-CA')).getTime()
+  return Math.floor((todayMs - new Date(dueDate).getTime()) / 86400000)
+}
+
+export type OverdueSeverity = 'none' | 'mild' | 'moderate' | 'serious' | 'critical'
+
+export function getOverdueSeverity(days: number): OverdueSeverity {
+  if (days <= 0) return 'none'
+  if (days <= 15) return 'mild'
+  if (days <= 30) return 'moderate'
+  if (days <= 60) return 'serious'
+  return 'critical'
+}

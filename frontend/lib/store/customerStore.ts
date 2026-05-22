@@ -2,33 +2,76 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import type { Customer } from '../../types/customer'
+import { apiFetch } from '../api/fetch'
 
 interface CustomerState {
   customers: Customer[]
-  addCustomer: (customer: Customer) => void
-  updateCustomer: (id: string, partial: Partial<Customer>) => void
-  deleteCustomer: (id: string) => void
+  addCustomer: (customer: Customer) => Promise<void>
+  updateCustomer: (id: string, partial: Partial<Customer>) => Promise<void>
+  deleteCustomer: (id: string) => Promise<void>
   getCustomerById: (id: string) => Customer | undefined
   searchCustomers: (query: string) => Customer[]
   setCustomers: (customers: Customer[]) => void
+  init: () => Promise<void>
 }
 
 export const useCustomerStore = create<CustomerState>()(
   persist(
     immer((set, get) => ({
       customers: [],
-      addCustomer: (customer) =>
-        set((state) => { state.customers.push(customer) }),
-      updateCustomer: (id, partial) =>
+
+      init: async () => {
+        try {
+          const res = await apiFetch('/api/customers')
+          if (res.ok) {
+            const customers: Customer[] = await res.json()
+            set((state) => { state.customers = customers })
+          }
+        } catch {
+          // keep localStorage data on network failure
+        }
+      },
+
+      addCustomer: async (customer) => {
+        set((state) => { state.customers.push(customer) })
+        try {
+          await apiFetch('/api/customers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(customer),
+          })
+        } catch {
+          // already in local state
+        }
+      },
+
+      updateCustomer: async (id, partial) => {
         set((state) => {
           const idx = state.customers.findIndex((c) => c.id === id)
           if (idx !== -1) Object.assign(state.customers[idx], partial)
-        }),
-      deleteCustomer: (id) =>
-        set((state) => {
-          state.customers = state.customers.filter((c) => c.id !== id)
-        }),
+        })
+        try {
+          await apiFetch(`/api/customers/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(partial),
+          })
+        } catch {
+          // already in local state
+        }
+      },
+
+      deleteCustomer: async (id) => {
+        set((state) => { state.customers = state.customers.filter((c) => c.id !== id) })
+        try {
+          await apiFetch(`/api/customers/${id}`, { method: 'DELETE' })
+        } catch {
+          // already removed locally
+        }
+      },
+
       getCustomerById: (id) => get().customers.find((c) => c.id === id),
+
       searchCustomers: (query) => {
         const q = query.toLowerCase()
         return get().customers.filter(
@@ -39,6 +82,7 @@ export const useCustomerStore = create<CustomerState>()(
             c.gstin?.toLowerCase().includes(q)
         )
       },
+
       setCustomers: (customers) => set((state) => { state.customers = customers }),
     })),
     { name: 'invozen-customers' }

@@ -5,7 +5,8 @@ import { useUIStore } from '@/lib/store/uiStore'
 import { TopBar } from '../app/TopBar'
 import { StatusBadge } from '../ui/Badge'
 import { formatDate } from '@/lib/utils/formatters'
-import { FileText, CheckCircle2, XCircle, Loader2, Info } from 'lucide-react'
+import { FileText, CheckCircle2, XCircle, Info } from 'lucide-react'
+import { useBusinessStore } from '@/lib/store/businessStore'
 
 type IRNStatus = 'pending' | 'generating' | 'generated' | 'cancelled'
 
@@ -20,14 +21,28 @@ interface IRNRecord {
   generatedAt: string | null
 }
 
-function generateMockIRN() {
-  const chars = 'abcdef0123456789'
-  return Array.from({ length: 64 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+// Deterministic IRN: same invoice always yields same 64-char hex (NIC IRP format simulation)
+function generateDeterministicIRN(invoiceNumber: string, invoiceDate: string, gstin: string): string {
+  const seed = `${gstin}_${invoiceDate.substring(0, 4)}_INV_${invoiceNumber}`
+  let h = 0x811c9dc5
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i)
+    h = (h * 0x01000193) >>> 0
+  }
+  const chars = '0123456789abcdef'
+  let irn = ''
+  let state = h
+  for (let i = 0; i < 64; i++) {
+    irn += chars[(state + seed.charCodeAt(i % seed.length)) & 15]
+    state = ((state << 5) ^ (state >> 2) ^ seed.charCodeAt(i % seed.length)) >>> 0
+  }
+  return irn
 }
 
 export function EInvoiceClient() {
   const { invoices } = useInvoiceStore()
   const { addToast } = useUIStore()
+  const { profile } = useBusinessStore()
 
   const [irnRecords, setIrnRecords] = useState<Map<string, IRNRecord>>(new Map())
 
@@ -43,6 +58,11 @@ export function EInvoiceClient() {
     const inv = invoices.find((i) => i.id === invoiceId)
     if (!inv) return
 
+    // Use the business GSTIN from the invoice snapshot or a fallback
+    const gstin = profile.gstin || 'UNREGISTERED'
+    const irn = generateDeterministicIRN(inv.invoiceNumber, inv.invoiceDate, gstin)
+    const now = new Date().toISOString()
+
     setIrnRecords((prev) => {
       const next = new Map(prev)
       next.set(invoiceId, {
@@ -51,27 +71,15 @@ export function EInvoiceClient() {
         invoiceDate: inv.invoiceDate,
         customerName: inv.customerSnapshot.name,
         amount: inv.grandTotal,
-        irn: null,
-        status: 'generating',
-        generatedAt: null,
+        irn,
+        status: 'generated',
+        generatedAt: now,
       })
       return next
     })
 
-    setTimeout(() => {
-      const irn = generateMockIRN()
-      setIrnRecords((prev) => {
-        const next = new Map(prev)
-        next.set(invoiceId, {
-          ...(next.get(invoiceId)!),
-          irn,
-          status: 'generated',
-          generatedAt: new Date().toISOString(),
-        })
-        return next
-      })
-      addToast({ type: 'success', title: 'IRN Generated', message: inv.invoiceNumber })
-    }, 2000)
+    useInvoiceStore.getState().updateInvoice(invoiceId, { irnNumber: irn, irnStatus: 'generated' })
+    addToast({ type: 'success', title: 'IRN Generated', message: inv.invoiceNumber })
   }
 
   const handleCancel = (invoiceId: string) => {
@@ -88,6 +96,7 @@ export function EInvoiceClient() {
       next.set(invoiceId, { ...(next.get(invoiceId)!), status: 'cancelled' })
       return next
     })
+    useInvoiceStore.getState().updateInvoice(invoiceId, { irnNumber: null, irnStatus: null })
     addToast({ type: 'success', title: 'IRN Cancelled', message: rec.invoiceNumber })
   }
 
@@ -138,7 +147,6 @@ export function EInvoiceClient() {
               <tbody>
                 {pending.map((inv) => {
                   const rec = irnRecords.get(inv.id)
-                  const isGenerating = rec?.status === 'generating'
                   return (
                     <tr key={inv.id} className="h-11 border-t" style={{ borderColor: 'var(--border-soft)' }}>
                       <td className="px-4 py-2 font-mono text-[12px] text-brand-600">{inv.invoiceNumber}</td>
@@ -149,13 +157,8 @@ export function EInvoiceClient() {
                       <td className="px-4 py-2">
                         <button
                           onClick={() => handleGenerate(inv.id)}
-                          disabled={isGenerating}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition-colors disabled:opacity-50">
-                          {isGenerating ? (
-                            <><Loader2 className="w-3 h-3 animate-spin" /> Generating...</>
-                          ) : (
-                            <><FileText className="w-3 h-3" /> Generate IRN</>
-                          )}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition-colors">
+                          <FileText className="w-3 h-3" /> Generate IRN
                         </button>
                       </td>
                     </tr>

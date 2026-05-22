@@ -13,6 +13,7 @@ export interface InvoiceTotals {
   cgstTotal: number
   sgstTotal: number
   igstTotal: number
+  cessTotal: number
   totalTax: number
   roundOff: number
   grandTotal: number
@@ -70,8 +71,11 @@ export interface GSTR1Summary {
     igst: number
     cgst: number
     sgst: number
+    cess: number
     totalTax: number
   }
+  missingHsnCount: number
+  skippedEmptyLineItems: number
 }
 
 export interface GSTR3BSection31 {

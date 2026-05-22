@@ -1,11 +1,14 @@
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
-import { Package, CreditCard, FileCheck, RefreshCw, ShoppingCart, Building2, FileMinus, Zap, Settings, Bell, Users2 } from 'lucide-react-native'
+import { Package, CreditCard, FileCheck, RefreshCw, ShoppingCart, Building2, FileMinus, Zap, Settings, Bell, Users2, Calendar, GitMerge } from 'lucide-react-native'
 import { TopBar } from '@/components/layout/TopBar'
+import { ServicesRoadmapBoard } from '@/components/services/ServicesRoadmapBoard'
 import { Colors, Radius, Shadow } from '@/constants/theme'
 import { useAuthStore } from '@/stores/authStore'
 
 const MENU_ITEMS = [
+  { label: 'Compliance',   icon: Calendar,    path: '/compliance' },
+  { label: 'ITC Recon',   icon: GitMerge,    path: '/itc-reconciliation' },
   { label: 'Items',        icon: Package,     path: '/items' },
   { label: 'Payments',     icon: CreditCard,  path: '/payments' },
   { label: 'Quotations',   icon: FileCheck,   path: '/quotations' },
@@ -57,6 +60,12 @@ export default function MoreScreen() {
             )
           })}
         </View>
+
+        <ServicesRoadmapBoard
+          eyebrow="Recommended Services"
+          title="Where this workspace expands next"
+          description="A CA-led roadmap of the services most businesses need after the core GST workflow is in place."
+        />
 
         {/* Sign out */}
         <Pressable
@@ -119,6 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.err50 ?? '#fef2f2',
     borderRadius: Radius.lg,
     padding: 14,
+    marginTop: 24,
     alignItems: 'center',
     borderWidth: 1, borderColor: Colors.err600 + '40',
   },

@@ -7,7 +7,8 @@ import { useUIStore } from '@/lib/store/uiStore'
 import { TopBar } from '../app/TopBar'
 import { SearchBar } from '../ui/SearchBar'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
-import { Plus, Package, Briefcase, Pencil, Trash2 } from 'lucide-react'
+import { BulkImportModal } from '../import/BulkImportModal'
+import { Plus, Package, Briefcase, Pencil, Trash2, Upload } from 'lucide-react'
 import type { ItemType } from '@/types/item'
 
 const GST_FILTERS = ['all', '0', '5', '12', '18', '28'] as const
@@ -20,6 +21,7 @@ export function ItemListClient() {
   const [typeFilter, setTypeFilter] = useState<'all' | ItemType>('all')
   const [gstFilter, setGstFilter] = useState<string>('all')
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [showImport, setShowImport] = useState(false)
 
   const filtered = useMemo(() =>
     items.filter((item) => {
@@ -50,9 +52,14 @@ export function ItemListClient() {
         title="Items"
         breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }]}
         actions={
-          <Link href="/items/new" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" /> Add Item
-          </Link>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+              <Upload className="w-3.5 h-3.5" /> Import CSV
+            </button>
+            <Link href="/items/new" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors">
+              <Plus className="w-4 h-4" /> Add Item
+            </Link>
+          </div>
         }
       />
 
@@ -179,6 +186,7 @@ export function ItemListClient() {
         variant="danger"
         confirmLabel="Delete"
       />
+      <BulkImportModal open={showImport} onClose={() => setShowImport(false)} />
     </div>
   )
 }

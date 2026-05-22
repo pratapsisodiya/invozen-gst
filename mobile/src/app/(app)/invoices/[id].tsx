@@ -1,21 +1,43 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native'
+import {
+  View, Text, StyleSheet, ScrollView, Pressable, Share, Linking, Alert,
+} from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useState } from 'react'
+import {
+  Share2, MessageSquare, Edit as EditIcon, Trash2, CheckCircle, CreditCard,
+} from 'lucide-react-native'
 import { useInvoiceStore } from '@/stores/invoiceStore'
+import { usePaymentStore } from '@/stores/paymentStore'
 import { formatCurrency, formatDate } from '@/lib/utils/formatters'
+import { generateId } from '@/lib/utils/ids'
 import { TopBar } from '@/components/layout/TopBar'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Modal } from '@/components/ui/Modal'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 import { Colors, Radius, Shadow } from '@/constants/theme'
-import { Share2, MessageSquare, Edit as EditIcon, Trash2 } from 'lucide-react-native'
-import { useState } from 'react'
+import type { PaymentMethod } from '@/lib/types/payment'
+import { PAYMENT_METHOD_LABELS } from '@/lib/types/payment'
+
+const PAYMENT_METHOD_OPTIONS = (Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map(
+  (k) => ({ label: PAYMENT_METHOD_LABELS[k], value: k })
+)
 
 export default function InvoiceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const router  = useRouter()
-  const { invoices, deleteInvoice } = useInvoiceStore()
+  const router = useRouter()
+  const { invoices, deleteInvoice, markAsSent, markAsPaid } = useInvoiceStore()
+  const { addPayment, getPaymentsByInvoice } = usePaymentStore()
   const invoice = invoices.find((i) => i.id === id)
+
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [payOpen, setPayOpen] = useState(false)
+  const [payAmount, setPayAmount] = useState('')
+  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0])
+  const [payMethod, setPayMethod] = useState<PaymentMethod>('upi')
+  const [payRef, setPayRef] = useState('')
 
   if (!invoice) {
     return (
@@ -28,9 +50,67 @@ export default function InvoiceDetailScreen() {
     )
   }
 
+  const payments = getPaymentsByInvoice(invoice.id)
+
   const handleDelete = () => {
     deleteInvoice(invoice.id)
     router.back()
+  }
+
+  const handleShare = async () => {
+    const customerName = (invoice as any).customerSnapshot?.name ?? 'Customer'
+    await Share.share({
+      message: `Invoice ${invoice.invoiceNumber}\nCustomer: ${customerName}\nAmount: ₹${formatCurrency(invoice.grandTotal)}\nDue: ${formatDate(invoice.dueDate ?? '')}\n\nThank you for your business!`,
+      title: `Invoice ${invoice.invoiceNumber}`,
+    })
+  }
+
+  const handleWhatsApp = () => {
+    const phone = (invoice as any).customerSnapshot?.phone ?? ''
+    if (!phone) {
+      Alert.alert('No Phone Number', 'This customer has no phone number on record.')
+      return
+    }
+    const cleaned = phone.replace(/\D/g, '')
+    const customerName = (invoice as any).customerSnapshot?.name ?? 'Customer'
+    const msg = encodeURIComponent(
+      `Hi ${customerName}, your invoice ${invoice.invoiceNumber} for ₹${formatCurrency(invoice.grandTotal)} is due on ${formatDate(invoice.dueDate ?? '')}. Please arrange payment. Thank you.`
+    )
+    Linking.openURL(`whatsapp://send?phone=91${cleaned}&text=${msg}`).catch(() =>
+      Alert.alert('WhatsApp not installed', 'Please install WhatsApp to use this feature.')
+    )
+  }
+
+  const handleRecordPayment = () => {
+    const amount = parseFloat(payAmount)
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid payment amount.')
+      return
+    }
+    const payment = {
+      id: generateId(),
+      invoiceId: invoice.id,
+      customerId: invoice.customerId,
+      amount,
+      paymentDate: payDate,
+      method: payMethod,
+      reference: payRef.trim() || null,
+      notes: null,
+      createdAt: new Date().toISOString(),
+    }
+    addPayment(payment)
+    markAsPaid(invoice.id, amount)
+    setPayOpen(false)
+    setPayAmount('')
+    setPayRef('')
+  }
+
+  const openPayModal = () => {
+    setPayAmount(String(invoice.balanceDue ?? invoice.grandTotal))
+    setPayDate(new Date().toISOString().split('T')[0])
+    setPayMethod('upi')
+    setPayRef('')
+    setPayOpen(true)
   }
 
   return (
@@ -67,6 +147,53 @@ export default function InvoiceDetailScreen() {
               </View>
             )}
           </View>
+        </View>
+
+        {/* Contextual Actions */}
+        <View style={[styles.actionsRow, styles.mt12]}>
+          {invoice.status === 'draft' && (
+            <Pressable
+              style={[styles.actionPill, styles.actionPillPrimary]}
+              onPress={() => markAsSent(invoice.id)}
+            >
+              <CheckCircle size={14} color="#fff" strokeWidth={2} />
+              <Text style={styles.actionPillTextPrimary}>Mark as Sent</Text>
+            </Pressable>
+          )}
+          {(invoice.status === 'sent' || invoice.status === 'overdue') && (
+            <>
+              <Pressable
+                style={[styles.actionPill, styles.actionPillGreen]}
+                onPress={openPayModal}
+              >
+                <CreditCard size={14} color="#fff" strokeWidth={2} />
+                <Text style={styles.actionPillTextPrimary}>Record Payment</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.actionPill, styles.actionPillWhatsApp]}
+                onPress={handleWhatsApp}
+              >
+                <MessageSquare size={14} color="#fff" strokeWidth={2} />
+                <Text style={styles.actionPillTextPrimary}>WhatsApp</Text>
+              </Pressable>
+            </>
+          )}
+          <Pressable
+            style={[styles.actionPill, styles.actionPillOutline]}
+            onPress={handleShare}
+          >
+            <Share2 size={14} color={Colors.brand600} strokeWidth={2} />
+            <Text style={styles.actionPillTextOutline}>Share</Text>
+          </Pressable>
+          {invoice.status === 'draft' && (
+            <Pressable
+              style={[styles.actionPill, styles.actionPillOutline]}
+              onPress={() => router.push(`/invoices/${invoice.id}-edit` as any)}
+            >
+              <EditIcon size={14} color={Colors.brand600} strokeWidth={2} />
+              <Text style={styles.actionPillTextOutline}>Edit</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Bill To */}
@@ -112,43 +239,30 @@ export default function InvoiceDetailScreen() {
           {((invoice as any).igstTotal ?? (invoice as any).totalIgst ?? 0) > 0 && <TotalRow label="IGST" value={(invoice as any).igstTotal ?? (invoice as any).totalIgst ?? 0} />}
           <TotalRow label="Total Tax"   value={invoice.totalTax} />
           <TotalRow label="Grand Total" value={invoice.grandTotal} bold accent />
-          {invoice.balanceDue > 0 && (
-            <TotalRow label="Balance Due" value={invoice.balanceDue} warn />
+          {(invoice.balanceDue ?? 0) > 0 && (
+            <TotalRow label="Balance Due" value={invoice.balanceDue!} warn />
           )}
         </View>
 
-        {/* Actions */}
-        <View style={styles.actionsRow}>
-          <Button
-            variant="outline"
-            size="md"
-            style={styles.actionBtn}
-            leftIcon={<Share2 size={14} color={Colors.brand600} />}
-            onPress={() => {}}
-          >
-            Share PDF
-          </Button>
-          <Button
-            variant="secondary"
-            size="md"
-            style={styles.actionBtn}
-            leftIcon={<MessageSquare size={14} color={Colors.brand700 ?? Colors.brand600} />}
-            onPress={() => {}}
-          >
-            WhatsApp
-          </Button>
-          <Button
-            variant="ghost"
-            size="md"
-            style={styles.actionBtn}
-            leftIcon={<EditIcon size={14} color={Colors.brand600} />}
-            onPress={() => router.push(`/invoices/${invoice.id}-edit` as any)}
-          >
-            Edit
-          </Button>
-        </View>
+        {/* Payment History */}
+        {payments.length > 0 && (
+          <View style={[styles.card, styles.mt12]}>
+            <Text style={styles.cardTitle}>Payment History</Text>
+            {payments.map((p) => (
+              <View key={p.id} style={styles.payRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.payMethod}>{PAYMENT_METHOD_LABELS[p.method]}</Text>
+                  <Text style={styles.payDate}>{formatDate(p.paymentDate)}{p.reference ? ` · Ref: ${p.reference}` : ''}</Text>
+                </View>
+                <Text style={styles.payAmount}>₹{formatCurrency(p.amount)}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
       </ScrollView>
 
+      {/* Delete Confirm */}
       <ConfirmDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
@@ -158,6 +272,48 @@ export default function InvoiceDetailScreen() {
         confirmLabel="Delete"
         variant="danger"
       />
+
+      {/* Record Payment Modal */}
+      <Modal
+        open={payOpen}
+        onClose={() => setPayOpen(false)}
+        title="Record Payment"
+        size="md"
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onPress={() => setPayOpen(false)}>Cancel</Button>
+            <Button variant="primary" size="sm" onPress={handleRecordPayment}>Record</Button>
+          </>
+        }
+      >
+        <View style={styles.modalBody}>
+          <Input
+            label="Amount Received (₹)"
+            value={payAmount}
+            onChangeText={setPayAmount}
+            keyboardType="decimal-pad"
+            placeholder="0.00"
+          />
+          <Input
+            label="Payment Date"
+            value={payDate}
+            onChangeText={setPayDate}
+            placeholder="YYYY-MM-DD"
+          />
+          <Select
+            label="Payment Method"
+            value={payMethod}
+            options={PAYMENT_METHOD_OPTIONS}
+            onValueChange={(v) => setPayMethod(v as PaymentMethod)}
+          />
+          <Input
+            label="Reference / UTR (optional)"
+            value={payRef}
+            onChangeText={setPayRef}
+            placeholder="Transaction ID, Cheque no., etc."
+          />
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -171,7 +327,7 @@ function TotalRow({ label, value, bold, accent, warn }: {
       <Text style={[
         totalStyles.value,
         bold   && totalStyles.bold,
-        accent && { color: Colors.brand700 ?? Colors.brand600 },
+        accent && { color: Colors.brand600 },
         warn   && { color: Colors.warn600 },
       ]}>
         ₹{formatCurrency(value)}
@@ -188,23 +344,36 @@ const totalStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   root:   { flex: 1, backgroundColor: Colors.bgWarm },
-  scroll: { padding: 16, paddingBottom: 32 },
+  scroll: { padding: 16, paddingBottom: 40 },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFoundText: { fontSize: 16, color: Colors.textMuted },
+  mt12: { marginTop: 12 },
 
   card: {
     backgroundColor: '#ffffff', borderRadius: Radius.xl,
     padding: 16, borderWidth: 1, borderColor: Colors.border,
     ...Shadow.sm,
   },
-  mt12: { marginTop: 12 },
 
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   invoiceNum: { fontSize: 15, fontWeight: '600', color: Colors.brand600, fontVariant: ['tabular-nums'] },
-  grandTotal: { fontSize: 28, fontWeight: '800', color: Colors.brand700 ?? Colors.brand600, fontVariant: ['tabular-nums'], marginBottom: 12 },
+  grandTotal: { fontSize: 28, fontWeight: '800', color: Colors.brand600, fontVariant: ['tabular-nums'], marginBottom: 12 },
   datesRow: { flexDirection: 'row', justifyContent: 'space-between' },
   dateLabel: { fontSize: 11, color: Colors.textMuted, marginBottom: 2 },
   dateVal:   { fontSize: 14, fontWeight: '500', color: Colors.text },
+
+  actionsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  actionPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: Radius.full,
+  },
+  actionPillPrimary:  { backgroundColor: Colors.brand600 },
+  actionPillGreen:    { backgroundColor: Colors.ok600 },
+  actionPillWhatsApp: { backgroundColor: '#25D366' },
+  actionPillOutline:  { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border },
+  actionPillTextPrimary: { fontSize: 13, fontWeight: '600', color: Colors.white },
+  actionPillTextOutline: { fontSize: 13, fontWeight: '600', color: Colors.brand600 },
 
   cardTitle: { fontSize: 13, fontWeight: '600', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
   custName:  { fontSize: 15, fontWeight: '600', color: Colors.text },
@@ -218,6 +387,13 @@ const styles = StyleSheet.create({
   itemName:   { fontSize: 13, fontWeight: '500', color: Colors.text },
   hsn:        { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
 
-  actionsRow: { flexDirection: 'row', gap: 10, marginTop: 20, flexWrap: 'wrap' },
-  actionBtn:  { flex: 1, minWidth: 100 },
+  payRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 10, borderTopWidth: 1, borderTopColor: Colors.borderSoft,
+  },
+  payMethod: { fontSize: 13, fontWeight: '600', color: Colors.text },
+  payDate:   { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
+  payAmount: { fontSize: 15, fontWeight: '700', color: Colors.ok600, fontVariant: ['tabular-nums'] },
+
+  modalBody: { padding: 20, gap: 14 },
 })

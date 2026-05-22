@@ -17,57 +17,72 @@ export function calculateGSTR1Summary(
   let nilRated = 0
   let exempted = 0
   let nonGst = 0
+  let missingHsnCount = 0
+  let skippedEmptyLineItems = 0
 
   const hsnMap = new Map<string, { description: string; uom: string; qty: number; taxableValue: number; gstRate: number; igst: number; cgst: number; sgst: number }>()
 
   for (const inv of filtered) {
     const isCreditNote = inv.invoiceType === 'credit_note'
 
-    if (inv.customerSnapshot.gstin) {
+    // Skip invoices with no line items — can't determine rate or HSN
+    if (!inv.lineItems.length) { skippedEmptyLineItems++; continue }
+
+    if (inv.customerSnapshot.gstin?.trim()) {
+      const isAmended = !!inv.amendedInvoiceId
       const entry: GSTR1B2BEntry = {
         customerGstin: inv.customerSnapshot.gstin,
         customerName: inv.customerSnapshot.name,
         invoiceNumber: inv.invoiceNumber,
         invoiceDate: inv.invoiceDate,
-        invoiceType: isCreditNote ? 'Credit Note' : 'Regular',
+        invoiceType: isCreditNote ? 'Credit Note' : isAmended ? 'Amended' : 'Regular',
         placeOfSupply: inv.placeOfSupply,
         reverseCharge: false,
         taxableValue: inv.taxableValue,
         igst: inv.igstTotal,
         cgst: inv.cgstTotal,
         sgst: inv.sgstTotal,
-        cess: 0,
+        cess: inv.cessTotal ?? 0,
         invoiceId: inv.id,
       }
       if (isCreditNote) cdnr.push(entry)
       else b2b.push(entry)
     } else {
-      const rate = inv.lineItems[0]?.gstRate ?? 18
-      const key = `${inv.placeOfSupply}_${rate}_B2CS`
-      const existing = b2cs.find(
-        (x) => x.placeOfSupply === inv.placeOfSupply && x.applicableTaxRate === rate
-      )
-      if (existing) {
-        existing.taxableValue += inv.taxableValue
-        existing.igst += inv.igstTotal
-      } else {
-        b2cs.push({
-          type: 'B2CS',
-          placeOfSupply: inv.placeOfSupply,
-          applicableTaxRate: rate,
-          taxableValue: inv.taxableValue,
-          igst: inv.igstTotal,
-          cess: 0,
-        })
+      // Aggregate B2CS per line item so mixed-rate invoices land in the correct rate bucket
+      for (const li of inv.lineItems) {
+        if (li.taxableValue === 0) continue
+        const existing = b2cs.find(
+          (x) => x.placeOfSupply === inv.placeOfSupply && x.applicableTaxRate === li.gstRate
+        )
+        const liIgst = inv.supplyType === 'inter' ? li.igst : 0
+        if (existing) {
+          existing.taxableValue += li.taxableValue
+          existing.igst += liIgst
+        } else {
+          b2cs.push({
+            type: 'B2CS',
+            placeOfSupply: inv.placeOfSupply,
+            applicableTaxRate: li.gstRate,
+            taxableValue: li.taxableValue,
+            igst: liIgst,
+            cess: 0,
+          })
+        }
       }
     }
 
     for (const item of inv.lineItems) {
       if (item.gstRate === 0) {
-        nilRated += item.taxableValue
+        // Distinguish nil-rated (HSN present, explicitly 0%) from exempted (no HSN = outside GST scope)
+        if (item.hsnSac && item.hsnSac.trim()) {
+          nilRated += item.taxableValue
+        } else {
+          exempted += item.taxableValue
+        }
         continue
       }
-      const hsnKey = item.hsnSac || 'MISC'
+      if (!item.hsnSac?.trim()) { missingHsnCount++; continue }
+      const hsnKey = item.hsnSac
       const existing = hsnMap.get(hsnKey)
       if (existing) {
         existing.qty += item.quantity
@@ -108,9 +123,10 @@ export function calculateGSTR1Summary(
       igst: acc.igst + inv.igstTotal,
       cgst: acc.cgst + inv.cgstTotal,
       sgst: acc.sgst + inv.sgstTotal,
+      cess: acc.cess + (inv.cessTotal ?? 0),
       totalTax: acc.totalTax + inv.totalTax,
     }),
-    { taxableValue: 0, igst: 0, cgst: 0, sgst: 0, totalTax: 0 }
+    { taxableValue: 0, igst: 0, cgst: 0, sgst: 0, cess: 0, totalTax: 0 }
   )
 
   return {
@@ -121,5 +137,7 @@ export function calculateGSTR1Summary(
     nil: { nilRated, exempted, nonGst },
     hsn,
     totals,
+    missingHsnCount,
+    skippedEmptyLineItems,
   }
 }

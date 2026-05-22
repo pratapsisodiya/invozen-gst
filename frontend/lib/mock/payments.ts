@@ -18,5 +18,7 @@ export const mockPayments: Payment[] = mockInvoices
       ? `NEFT${Math.random().toString(36).slice(2, 14).toUpperCase()}`
       : null,
     notes: null,
+    isAdvance: false,
+    advanceAdjustedInvoiceId: null,
     createdAt: `${inv.invoiceDate}T14:00:00Z`,
   }))

@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { MenuIcon, CloseIcon, ArrowRightIcon } from "@/app/components/ui/Icons";
 
 const navLinks = [
   { label: "Features", href: "#features" },
+  { label: "Services", href: "#services" },
   { label: "Pricing", href: "#pricing" },
   { label: "For Accountants", href: "#for-accountants" },
   { label: "GST Guide", href: "#gst-guide" },
@@ -99,27 +101,27 @@ export default function MobileMenu() {
           ))}
 
           <div className="mt-2 pt-4" style={{ borderTop: "1px solid var(--border-color)" }}>
-            <a
-              href="#login"
+            <Link
+              href="/login"
               onClick={() => setOpen(false)}
               className="flex items-center px-3 py-3 rounded-lg text-sm font-medium hover:bg-zinc-100 transition-colors"
               style={{ color: "var(--text-muted)" }}
             >
               Log in
-            </a>
+            </Link>
           </div>
         </nav>
 
         {/* Drawer CTA */}
         <div className="px-5 pb-8 pt-4" style={{ borderTop: "1px solid var(--border-color)" }}>
-          <a
-            href="#pricing"
+          <Link
+            href="/signup"
             onClick={() => setOpen(false)}
             className="flex items-center justify-center gap-2 w-full bg-teal-600 text-white text-sm font-semibold py-3 rounded-lg hover:bg-teal-700 transition-colors"
           >
             Start Free Trial
             <ArrowRightIcon size={15} strokeWidth={2.5} />
-          </a>
+          </Link>
           <p className="text-center text-xs mt-2.5" style={{ color: "var(--text-faint)" }}>
             No credit card required
           </p>
