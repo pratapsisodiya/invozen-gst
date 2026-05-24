@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, startTransition } from 'react'
 import { TopBar } from '../app/TopBar'
 import { Modal } from '../ui/Modal'
 import { downloadBackup, validateBackup, restoreFromBackup, getBackupDaysAgo, getLastBackupDate } from '@/lib/backup/backupManager'
@@ -19,8 +19,10 @@ export function BackupRestoreClient() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setLastBackup(getLastBackupDate())
-    setDaysAgo(getBackupDaysAgo())
+    startTransition(() => {
+      setLastBackup(getLastBackupDate())
+      setDaysAgo(getBackupDaysAgo())
+    })
   }, [])
 
   const handleDownload = () => {

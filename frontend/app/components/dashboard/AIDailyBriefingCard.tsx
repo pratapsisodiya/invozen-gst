@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, startTransition } from 'react'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
 import { useCustomerStore } from '@/lib/store/customerStore'
 import { usePurchaseStore } from '@/lib/store/purchaseStore'
@@ -120,7 +120,7 @@ export function AIDailyBriefingCard() {
   }, [invoices, customers, profile, getItcSummary])
 
   useEffect(() => {
-    fetchBriefing()
+    startTransition(() => { fetchBriefing() })
   }, [])
 
   if (error) return null

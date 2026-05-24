@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, startTransition } from 'react'
 import { Wand2 } from 'lucide-react'
 import { useBusinessStore } from '@/lib/store/businessStore'
 import type { GSTR1Summary, GSTR3BSummary } from '@/types/gst'
@@ -18,9 +18,11 @@ export function ReportInsights({ gstr1, gstr3b, period }: ReportInsightsProps) {
   const [fetched, setFetched] = useState(false)
 
   useEffect(() => {
-    setInsights([])
-    setFetched(false)
-    setError(null)
+    startTransition(() => {
+      setInsights([])
+      setFetched(false)
+      setError(null)
+    })
   }, [period.month, period.year])
 
   const handleFetch = async () => {

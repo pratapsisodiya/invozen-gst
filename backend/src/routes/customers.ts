@@ -18,21 +18,17 @@ router.get('/', async (req, res, next) => {
       where: {
         userId,
         ...(type ? { businessType: type } : {}),
+        ...(search ? {
+          OR: [
+            { name: { contains: search } },
+            { gstin: { contains: search } },
+          ],
+        } : {}),
       },
       orderBy: { createdAt: 'desc' },
     })
 
-    let data = rows.map((r) => r.data)
-    if (search) {
-      const q = search.toLowerCase()
-      data = data.filter((c: unknown) => {
-        const customer = c as Record<string, string>
-        return customer['name']?.toLowerCase().includes(q) ||
-          customer['gstin']?.toLowerCase().includes(q) ||
-          customer['phone']?.includes(q)
-      })
-    }
-    ok(res, data)
+    ok(res, rows.map((r) => r.data))
   } catch (err) { next(err) }
 })
 

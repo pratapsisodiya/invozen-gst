@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, startTransition } from 'react'
 import { usePaymentStore } from '@/lib/store/paymentStore'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
 import { useCustomerStore } from '@/lib/store/customerStore'
@@ -94,7 +94,9 @@ export function PaymentsClient() {
     invoicesForSelectedCustomer.forEach((inv) => {
       newAllocs[inv.id] = String(inv.balanceDue.toFixed(2))
     })
-    setAllocations(newAllocs)
+    startTransition(() => {
+      setAllocations(newAllocs)
+    })
   }, [selectedCustomerId])
 
   const allocationTotal = useMemo(() =>
@@ -219,15 +221,15 @@ export function PaymentsClient() {
         title="Payments"
         breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }]}
         actions={
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 sm:gap-2">
             <button onClick={() => { setAdvCustomerId(customers[0]?.id || ''); setShowAdvanceModal(true) }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-colors"
               style={{ border: '1px solid var(--border)', color: 'var(--text-2)' }}>
-              <Wallet className="w-4 h-4" /> Record Advance
+              <Wallet className="w-4 h-4" /> <span className="hidden sm:inline">Record Advance</span>
             </button>
             <button onClick={() => openModal()} disabled={pendingInvoices.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-              <CreditCard className="w-4 h-4" /> Record Payment
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <CreditCard className="w-4 h-4" /> <span className="hidden sm:inline">Record Payment</span>
             </button>
           </div>
         }
@@ -246,15 +248,17 @@ export function PaymentsClient() {
         {/* Overdue invoices quick actions */}
         {pendingInvoices.filter((i) => i.status === 'overdue').length > 0 && (
           <div className="rounded-xl p-4" style={{ background: 'var(--err-50, #fef2f2)', border: '1px solid var(--err-200, #fecaca)' }}>
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-err-500 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-err-700">
-                  {pendingInvoices.filter((i) => i.status === 'overdue').length} overdue {pendingInvoices.filter((i) => i.status === 'overdue').length === 1 ? 'invoice' : 'invoices'}
-                </p>
-                <p className="text-xs text-err-600 mt-0.5">₹{totalOverdue.toLocaleString('en-IN')} pending collection</p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <AlertCircle className="w-5 h-5 text-err-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-err-700">
+                    {pendingInvoices.filter((i) => i.status === 'overdue').length} overdue {pendingInvoices.filter((i) => i.status === 'overdue').length === 1 ? 'invoice' : 'invoices'}
+                  </p>
+                  <p className="text-xs text-err-600 mt-0.5">₹{totalOverdue.toLocaleString('en-IN')} pending collection</p>
+                </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {pendingInvoices.filter((i) => i.status === 'overdue').slice(0, 3).map((inv) => (
                   <button key={inv.id} onClick={() => openModal(inv.id)}
                     className="px-2.5 py-1 rounded text-xs font-medium bg-white border hover:bg-ink-50 transition-colors"
@@ -361,7 +365,7 @@ export function PaymentsClient() {
               {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[13px] font-medium mb-1 block" style={{ color: 'var(--text-2)' }}>Amount (₹)</label>
               <input type="number" min="0" step="0.01" value={advAmount} onChange={(e) => setAdvAmount(e.target.value)}

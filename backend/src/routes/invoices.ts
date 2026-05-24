@@ -7,7 +7,7 @@ import { toJson } from '../lib/prisma.js'
 import { ok, created, notFound, badRequest } from '../lib/response.js'
 import { NicIrpService } from '../lib/einvoice/nicIrp.js'
 import { generateId } from '../lib/id.js'
-import { cancelIrnSchema } from '../lib/validation/invoice.js'
+import { createInvoiceSchema, updateInvoiceSchema, cancelIrnSchema } from '../lib/validation/invoice.js'
 import { ZodError } from 'zod'
 
 const router = Router()
@@ -51,16 +51,21 @@ router.post('/', async (req, res, next) => {
   try {
     const userId = (req as unknown as AuthRequest).userId
     const body = req.body as Record<string, unknown>
-    if (!body['id'] || !body['invoiceNumber']) return badRequest(res, 'id and invoiceNumber are required')
+
+    const parsed = createInvoiceSchema.safeParse(body)
+    if (!parsed.success) {
+      const msg = parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')
+      return badRequest(res, msg)
+    }
 
     const row = await prisma.invoice.create({
       data: {
-        id: body['id'] as string,
+        id: parsed.data.id,
         userId,
-        invoiceNumber: body['invoiceNumber'] as string,
-        customerId: body['customerId'] as string,
-        status: (body['status'] as string) || 'draft',
-        invoiceDate: body['invoiceDate'] as string,
+        invoiceNumber: parsed.data.invoiceNumber,
+        customerId: parsed.data.customerId,
+        status: parsed.data.status,
+        invoiceDate: parsed.data.invoiceDate,
         data: toJson(body),
       },
     })
@@ -83,7 +88,13 @@ router.put('/:id', async (req, res, next) => {
     const existing = await prisma.invoice.findFirst({ where: { id: (req.params['id'] as string), userId } })
     if (!existing) return notFound(res)
 
-    const merged = { ...(existing.data as object), ...req.body, updatedAt: new Date().toISOString() }
+    const parsed = updateInvoiceSchema.safeParse(req.body)
+    if (!parsed.success) {
+      const msg = parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')
+      return badRequest(res, msg)
+    }
+
+    const merged = { ...(existing.data as object), ...parsed.data, updatedAt: new Date().toISOString() }
     const m = merged as Record<string, unknown>
     const row = await prisma.invoice.update({
       where: { id: (req.params['id'] as string) },

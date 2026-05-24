@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
 import { useCustomerStore } from '@/lib/store/customerStore'
@@ -59,7 +59,7 @@ export function CommandPalette() {
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 50)
   }, [isOpen])
 
-  useEffect(() => { setActiveIndex(0) }, [query])
+  useEffect(() => { startTransition(() => { setActiveIndex(0) }) }, [query])
 
   const results = useMemo((): CommandResult[] => {
     if (!query.trim()) return STATIC_PAGES
@@ -132,7 +132,7 @@ export function CommandPalette() {
         {/* Results */}
         <div ref={listRef} className="max-h-80 overflow-y-auto py-1.5">
           {results.length === 0 ? (
-            <div className="py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>No results for "{query}"</div>
+            <div className="py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>No results for &ldquo;{query}&rdquo;</div>
           ) : (
             results.map((result, i) => {
               const Icon = result.icon

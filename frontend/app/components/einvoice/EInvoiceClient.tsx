@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
 import { useUIStore } from '@/lib/store/uiStore'
 import { TopBar } from '../app/TopBar'
@@ -82,11 +82,12 @@ export function EInvoiceClient() {
     addToast({ type: 'success', title: 'IRN Generated', message: inv.invoiceNumber })
   }
 
-  const handleCancel = (invoiceId: string) => {
+  const nowRef = useRef(Date.now)
+  const handleCancel = useCallback((invoiceId: string) => {
     const rec = irnRecords.get(invoiceId)
     if (!rec) return
     const genTime = rec.generatedAt ? new Date(rec.generatedAt).getTime() : 0
-    const hoursPassed = (Date.now() - genTime) / 3600000
+    const hoursPassed = (nowRef.current() - genTime) / 3600000
     if (hoursPassed > 24) {
       addToast({ type: 'error', title: 'Cannot cancel', message: '24-hour cancellation window has passed' })
       return
@@ -98,7 +99,7 @@ export function EInvoiceClient() {
     })
     useInvoiceStore.getState().updateInvoice(invoiceId, { irnNumber: null, irnStatus: null })
     addToast({ type: 'success', title: 'IRN Cancelled', message: rec.invoiceNumber })
-  }
+  }, [irnRecords, addToast])
 
   const generated = [...irnRecords.values()].filter((r) => r.status === 'generated')
   const pending = eligibleInvoices.filter((i) => {

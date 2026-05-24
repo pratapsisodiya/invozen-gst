@@ -9,6 +9,7 @@ interface InvoiceState {
   invoices: Invoice[]
   filter: InvoiceFilter
   addInvoice: (invoice: Invoice) => Promise<void>
+  localAddInvoice: (invoice: Invoice) => void
   updateInvoice: (id: string, partial: Partial<Invoice>) => Promise<void>
   deleteInvoice: (id: string) => Promise<void>
   duplicateInvoice: (id: string) => void
@@ -66,6 +67,8 @@ export const useInvoiceStore = create<InvoiceState>()(
           set((state) => { state.invoices = state.invoices.filter((i) => i.id !== invoice.id) })
         }
       },
+
+      localAddInvoice: (invoice) => set((state) => { state.invoices.unshift(invoice) }),
 
       duplicateInvoice: (id) =>
         set((state) => {
@@ -256,6 +259,7 @@ export const useInvoiceStore = create<InvoiceState>()(
       },
 
       bulkUpdateStatus: async (ids, status) => {
+        const prevArr = JSON.parse(JSON.stringify(get().invoices))
         set((state) => {
           const now = new Date().toISOString()
           for (const inv of state.invoices) {
@@ -271,8 +275,9 @@ export const useInvoiceStore = create<InvoiceState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'updateStatus', ids, status }),
           })
-        } catch {
-          // already in local state
+        } catch (err) {
+          console.error('[invoiceStore] bulkUpdateStatus failed, rolling back:', err)
+          set((state) => { state.invoices = prevArr })
         }
       },
 

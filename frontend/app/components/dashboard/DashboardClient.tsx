@@ -107,13 +107,13 @@ export function DashboardClient() {
       <TopBar
         title="Dashboard"
         actions={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             {/* Month navigator */}
             <div className="flex items-center gap-1 rounded-lg border px-1" style={{ borderColor: 'var(--border)' }}>
               <button onClick={goToPrevMonth} className="p-1 rounded hover:bg-ink-50 transition-colors" aria-label="Previous month">
                 <ChevronLeft className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
               </button>
-              <span className="text-xs font-medium px-1 tabular-nums" style={{ color: 'var(--text)', minWidth: 72, textAlign: 'center' }}>
+              <span className="text-xs font-medium px-1 tabular-nums" style={{ color: 'var(--text)', minWidth: 64, textAlign: 'center' }}>
                 {MONTH_NAMES[selectedMonth - 1].slice(0, 3)} {selectedYear}
               </span>
               <button onClick={goToNextMonth} className="p-1 rounded hover:bg-ink-50 transition-colors" aria-label="Next month" disabled={isCurrentMonth}>
@@ -122,18 +122,18 @@ export function DashboardClient() {
             </div>
             {!isCurrentMonth && (
               <button onClick={() => { setSelectedMonth(now.getMonth() + 1); setSelectedYear(now.getFullYear()) }}
-                className="px-2.5 py-1.5 rounded-lg border text-xs font-medium hover:bg-ink-50 transition-colors"
+                className="px-2 py-1.5 rounded-lg border text-xs font-medium hover:bg-ink-50 transition-colors"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
                 Today
               </button>
             )}
             <button onClick={() => setShowHealthReport(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
               style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
-              <Sparkles className="w-4 h-4 text-brand-600" /> Health Report
+              <Sparkles className="w-4 h-4 text-brand-600" /> <span className="hidden sm:inline">Health Report</span>
             </button>
-            <Link href="/invoices/new" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors">
-              <Plus className="w-4 h-4" /> New Invoice
+            <Link href="/invoices/new" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors">
+              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">New Invoice</span>
             </Link>
           </div>
         }
@@ -143,14 +143,14 @@ export function DashboardClient() {
       <div className="flex-1 p-4 lg:p-6 flex flex-col gap-6">
         {/* CA Client View Banner */}
         {clientId && clientName && (
-          <div className="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium bg-amber-50 border border-amber-200">
-            <div className="flex items-center gap-2 text-amber-800">
-              <Users className="w-4 h-4" />
-              <span>Viewing client: <strong>{clientName}</strong> — data shown is for your business, not the client&apos;s separate account.</span>
+          <div className="flex items-center justify-between gap-2 px-4 py-3 rounded-xl text-sm font-medium bg-amber-50 border border-amber-200">
+            <div className="flex items-center gap-2 text-amber-800 min-w-0">
+              <Users className="w-4 h-4 shrink-0" />
+              <span className="truncate">Viewing: <strong>{clientName}</strong></span>
             </div>
             <button onClick={() => router.push('/ca-dashboard')}
-              className="flex items-center gap-1 text-amber-700 hover:text-amber-900 text-xs font-semibold">
-              <X className="w-3.5 h-3.5" /> Exit Client View
+              className="shrink-0 flex items-center gap-1 text-amber-700 hover:text-amber-900 text-xs font-semibold">
+              <X className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Exit Client View</span><span className="sm:hidden">Exit</span>
             </button>
           </div>
         )}
@@ -206,7 +206,7 @@ export function DashboardClient() {
         </div>
 
         {/* Aging Summary */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <KpiCard title="Not Yet Due" value={aging.current} isAmount />
           <KpiCard title="1–30 Days Overdue" value={aging.late30} isAmount subtextColor={aging.late30 > 0 ? 'warn' : 'default'} />
           <KpiCard title="30+ Days Overdue" value={aging.late60plus} isAmount subtextColor={aging.late60plus > 0 ? 'error' : 'default'} />
@@ -310,9 +310,11 @@ export function DashboardClient() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                    {['Invoice No.', 'Customer', 'Date', 'Amount', 'Status'].map((h) => (
-                      <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{h}</th>
-                    ))}
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Invoice No.</th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Customer</th>
+                    <th className="hidden sm:table-cell px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Date</th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Amount</th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -321,8 +323,8 @@ export function DashboardClient() {
                       <td className="px-4 py-2">
                         <Link href={`/invoices/${inv.id}`} className="text-brand-600 hover:text-brand-700 font-mono text-[13px]">{inv.invoiceNumber}</Link>
                       </td>
-                      <td className="px-4 py-2 text-[13px]" style={{ color: 'var(--text)' }}>{inv.customerSnapshot.name}</td>
-                      <td className="px-4 py-2 text-[13px]" style={{ color: 'var(--text-muted)' }}>{formatDate(inv.invoiceDate, 'd MMM')}</td>
+                      <td className="px-4 py-2 text-[13px] max-w-[120px] truncate" style={{ color: 'var(--text)' }}>{inv.customerSnapshot.name}</td>
+                      <td className="hidden sm:table-cell px-4 py-2 text-[13px]" style={{ color: 'var(--text-muted)' }}>{formatDate(inv.invoiceDate, 'd MMM')}</td>
                       <td className="px-4 py-2 text-right tabular-nums text-[13px]" style={{ color: 'var(--text)' }}>
                         ₹{inv.grandTotal.toLocaleString('en-IN')}
                       </td>

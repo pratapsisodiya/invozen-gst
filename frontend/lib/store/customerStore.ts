@@ -40,12 +40,16 @@ export const useCustomerStore = create<CustomerState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(customer),
           })
-        } catch {
-          // already in local state
+        } catch (err) {
+          console.error('[customerStore] addCustomer failed, rolling back:', err)
+          set((state) => { state.customers = state.customers.filter((c) => c.id !== customer.id) })
         }
       },
 
       updateCustomer: async (id, partial) => {
+        const prev = get().customers.find((c) => c.id === id)
+        if (!prev) return
+        const snapshot = JSON.parse(JSON.stringify(prev))
         set((state) => {
           const idx = state.customers.findIndex((c) => c.id === id)
           if (idx !== -1) Object.assign(state.customers[idx], partial)
@@ -56,17 +60,23 @@ export const useCustomerStore = create<CustomerState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(partial),
           })
-        } catch {
-          // already in local state
+        } catch (err) {
+          console.error('[customerStore] updateCustomer failed, rolling back:', err)
+          set((state) => {
+            const idx = state.customers.findIndex((c) => c.id === id)
+            if (idx !== -1) state.customers[idx] = snapshot
+          })
         }
       },
 
       deleteCustomer: async (id) => {
+        const prevArr = JSON.parse(JSON.stringify(get().customers))
         set((state) => { state.customers = state.customers.filter((c) => c.id !== id) })
         try {
           await apiFetch(`/api/customers/${id}`, { method: 'DELETE' })
-        } catch {
-          // already removed locally
+        } catch (err) {
+          console.error('[customerStore] deleteCustomer failed, rolling back:', err)
+          set((state) => { state.customers = prevArr })
         }
       },
 

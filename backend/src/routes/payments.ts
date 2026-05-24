@@ -29,15 +29,17 @@ router.post('/', async (req, res, next) => {
   try {
     const userId = (req as unknown as AuthRequest).userId
     const body = req.body as Record<string, unknown>
-    if (!body['id'] || !body['invoiceId'] || !body['amount']) {
-      return badRequest(res, 'id, invoiceId, and amount are required')
+    if (!body['id'] || !body['amount']) {
+      return badRequest(res, 'id and amount are required')
     }
+    if (!body['customerId']) return badRequest(res, 'customerId is required')
+    if (!body['paymentDate']) return badRequest(res, 'paymentDate is required')
 
     const row = await prisma.payment.create({
       data: {
         id: body['id'] as string,
         userId,
-        invoiceId: body['invoiceId'] as string,
+        invoiceId: (body['invoiceId'] as string) || '',
         customerId: body['customerId'] as string,
         paymentDate: body['paymentDate'] as string,
         data: toJson(body),

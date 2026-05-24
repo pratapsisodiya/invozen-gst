@@ -32,8 +32,9 @@ export function RecurringListClient() {
   const { templates, logs, generateNow, pauseTemplate, resumeTemplate, deleteTemplate } = useRecurringStore()
   const { addToast } = useUIStore()
 
+  const [nowMs] = useState<number>(() => Date.now())
   const recentAutoIds = useMemo(() => {
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000
+    const cutoff = nowMs - 24 * 60 * 60 * 1000
     return new Set(
       logs
         .filter((l) => l.triggeredBy === 'auto' && new Date(l.generatedAt).getTime() > cutoff)

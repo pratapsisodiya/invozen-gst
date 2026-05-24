@@ -18,19 +18,12 @@ router.get('/', async (req, res, next) => {
         userId,
         ...(type ? { type } : {}),
         ...(active !== undefined ? { isActive: active === 'true' } : {}),
+        ...(search ? { name: { contains: search } } : {}),
       },
       orderBy: { createdAt: 'desc' },
     })
 
-    let data = rows.map((r) => r.data)
-    if (search) {
-      const q = search.toLowerCase()
-      data = data.filter((i: unknown) => {
-        const item = i as Record<string, string>
-        return item['name']?.toLowerCase().includes(q) || item['hsnCode']?.toLowerCase().includes(q)
-      })
-    }
-    ok(res, data)
+    ok(res, rows.map((r) => r.data))
   } catch (err) { next(err) }
 })
 

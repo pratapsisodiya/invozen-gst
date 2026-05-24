@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
 import { useCustomerStore } from '@/lib/store/customerStore'
@@ -104,16 +104,20 @@ export function InvoiceFormClient({ editId }: InvoiceFormClientProps) {
     })
 
   useEffect(() => {
-    setLineItems((prev) => recalcLineItems(prev, supplyType))
+    startTransition(() => {
+      setLineItems((prev) => recalcLineItems(prev, supplyType))
+    })
   }, [supplyType])
 
   // Bill of Supply: zero out all GST when type switches
   useEffect(() => {
     if (invoiceType === 'bill_of_supply') {
-      setLineItems((prev) => prev.map((li) => {
-        const calc = calculateLineItem(li.quantity, li.rate, li.discountPercent, 0, supplyType, 0)
-        return { ...li, gstRate: 0, ...calc }
-      }))
+      startTransition(() => {
+        setLineItems((prev) => prev.map((li) => {
+          const calc = calculateLineItem(li.quantity, li.rate, li.discountPercent, 0, supplyType, 0)
+          return { ...li, gstRate: 0, ...calc }
+        }))
+      })
     }
   }, [invoiceType])
 
@@ -250,8 +254,10 @@ export function InvoiceFormClient({ editId }: InvoiceFormClientProps) {
     commitSave(status)
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   useKeyboardShortcut('s', () => void handleSave('draft'), { meta: true, preventDefault: true })
+
+  const savedSecondsAgo = lastSavedAt ? Math.round((new Date().getTime() - lastSavedAt.getTime()) / 1000) : 0
 
   return (
     <div className="flex flex-col flex-1">
@@ -297,20 +303,20 @@ export function InvoiceFormClient({ editId }: InvoiceFormClientProps) {
         title={editingInvoice ? `Edit ${editingInvoice.invoiceNumber}` : 'New Invoice'}
         breadcrumb={[{ label: 'Invoices', href: '/invoices' }]}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {lastSavedAt && (
-              <span className="text-[11px] px-2 py-1 rounded-full" style={{ background: 'var(--surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-                Saved {Math.round((Date.now() - lastSavedAt.getTime()) / 1000)}s ago
+              <span className="hidden sm:inline text-[11px] px-2 py-1 rounded-full" style={{ background: 'var(--surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                Saved {savedSecondsAgo}s ago
               </span>
             )}
             <button onClick={() => void handleSave('draft')} disabled={saving}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors hover:bg-ink-50 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-sm font-medium transition-colors hover:bg-ink-50 disabled:opacity-50"
               style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
-              <Save className="w-3.5 h-3.5" /> Save Draft
+              <Save className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Save Draft</span>
             </button>
             <button onClick={() => void handleSave('sent')} disabled={saving}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors disabled:opacity-50">
-              <Send className="w-3.5 h-3.5" /> {saving ? 'Saving...' : 'Save & Send'}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors disabled:opacity-50">
+              <Send className="w-3.5 h-3.5" /> {saving ? <span className="hidden sm:inline">Saving...</span> : <span className="hidden sm:inline">Save & Send</span>}
             </button>
           </div>
         }
@@ -324,7 +330,7 @@ export function InvoiceFormClient({ editId }: InvoiceFormClientProps) {
             {/* Invoice meta */}
             <div className="rounded-xl bg-white p-5" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
               <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--text)' }}>Invoice Details</h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input label="Invoice Number" value={editingInvoice?.invoiceNumber || generateInvoiceNumber(settings.invoiceSettings.invoicePrefix, settings.invoiceSettings.currentCounter)} readOnly />
                 <Select label="Invoice Type" value={invoiceType} onChange={(e) => setInvoiceType(e.target.value as import('@/types/invoice').InvoiceType)} options={[
                   { value: 'tax_invoice', label: 'Tax Invoice' },
@@ -591,7 +597,7 @@ export function InvoiceFormClient({ editId }: InvoiceFormClientProps) {
               <div className="rounded-xl bg-white p-5" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
                 <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>TDS Deduction</h2>
                 <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Tax Deducted at Source — applicable for B2B transactions above threshold</p>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-[13px] font-medium mb-1 block" style={{ color: 'var(--text-2)' }}>TDS Section</label>
                     <select
@@ -640,7 +646,7 @@ export function InvoiceFormClient({ editId }: InvoiceFormClientProps) {
 
           {/* Summary panel — 2/5 width */}
           <div className="lg:col-span-2">
-            <div className="sticky top-20 rounded-xl bg-white overflow-hidden" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+            <div className="lg:sticky lg:top-20 rounded-xl bg-white overflow-hidden" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
               <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
                 <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Invoice Summary</h2>
                 {selectedCustomer && (

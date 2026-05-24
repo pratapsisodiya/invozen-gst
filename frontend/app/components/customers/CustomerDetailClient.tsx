@@ -19,17 +19,22 @@ export function CustomerDetailClient({ id }: { id: string }) {
   const { payments } = usePaymentStore()
 
   const customer = customers.find((c) => c.id === id)
-  if (!customer) return <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>Customer not found</div>
 
-  const custInvoices = invoices.filter((i) => i.customerId === id).sort((a, b) => b.invoiceDate.localeCompare(a.invoiceDate))
-  const custPayments = payments.filter((p) => p.customerId === id).sort((a, b) => b.paymentDate.localeCompare(a.paymentDate))
+  const custInvoices = useMemo(
+    () => invoices.filter((i) => i.customerId === id).sort((a, b) => b.invoiceDate.localeCompare(a.invoiceDate)),
+    [invoices, id]
+  )
+  const custPayments = useMemo(
+    () => payments.filter((p) => p.customerId === id).sort((a, b) => b.paymentDate.localeCompare(a.paymentDate)),
+    [payments, id]
+  )
 
-  const totalInvoiced = custInvoices.filter((i) => i.status !== 'void').reduce((s, i) => s + i.grandTotal, 0)
-  const totalPaid = custPayments.reduce((s, p) => s + p.amount, 0)
-  const outstanding = custInvoices.filter((i) => ['sent', 'overdue'].includes(i.status)).reduce((s, i) => s + i.balanceDue, 0)
-  const overdueAmount = custInvoices.filter((i) => i.status === 'overdue').reduce((s, i) => s + i.balanceDue, 0)
-  const paidCount = custInvoices.filter((i) => i.status === 'paid').length
-  const overdueCount = custInvoices.filter((i) => i.status === 'overdue').length
+  const totalInvoiced = useMemo(() => custInvoices.filter((i) => i.status !== 'void').reduce((s, i) => s + i.grandTotal, 0), [custInvoices])
+  const totalPaid = useMemo(() => custPayments.reduce((s, p) => s + p.amount, 0), [custPayments])
+  const outstanding = useMemo(() => custInvoices.filter((i) => ['sent', 'overdue'].includes(i.status)).reduce((s, i) => s + i.balanceDue, 0), [custInvoices])
+  const overdueAmount = useMemo(() => custInvoices.filter((i) => i.status === 'overdue').reduce((s, i) => s + i.balanceDue, 0), [custInvoices])
+  const paidCount = useMemo(() => custInvoices.filter((i) => i.status === 'paid').length, [custInvoices])
+  const overdueCount = useMemo(() => custInvoices.filter((i) => i.status === 'overdue').length, [custInvoices])
   const avgDaysToPay = useMemo(() => {
     const paidInvs = custInvoices.filter((i) => i.status === 'paid')
     if (paidInvs.length === 0) return 30
@@ -42,6 +47,8 @@ export function CustomerDetailClient({ id }: { id: string }) {
     return Math.round(total / paidInvs.length)
   }, [custInvoices, custPayments])
   const lastInvoiceDate = custInvoices[0]?.invoiceDate ?? null
+
+  if (!customer) return <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>Customer not found</div>
 
   return (
     <div className="flex flex-col flex-1">

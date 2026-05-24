@@ -109,9 +109,10 @@ export function RemindersClient() {
     { id: 'r4', label: '7 days after due date', sublabel: 'Urgent overdue notice', enabled: false },
   ])
 
-  const today = new Date().toISOString().split('T')[0]
-  const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0]
-  const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
+  const [nowMs] = useState<number>(() => Date.now())
+  const today = new Date(nowMs).toISOString().split('T')[0]
+  const in3Days = new Date(nowMs + 3 * 86400000).toISOString().split('T')[0]
+  const in7Days = new Date(nowMs + 7 * 86400000).toISOString().split('T')[0]
 
   const pending: PendingReminder[] = useMemo(() => {
     const result: PendingReminder[] = []
@@ -121,7 +122,7 @@ export function RemindersClient() {
         const cust = customers.find((c) => c.id === inv.customerId)
         let priority: Priority
         if (inv.status === 'overdue') {
-          const daysPast = Math.floor((Date.now() - new Date(inv.dueDate).getTime()) / 86400000)
+          const daysPast = Math.floor((nowMs - new Date(inv.dueDate).getTime()) / 86400000)
           priority = daysPast >= 7 ? 'urgent' : 'overdue'
         } else if (inv.dueDate <= today) {
           priority = 'due_today'
@@ -164,7 +165,7 @@ export function RemindersClient() {
     try {
       const cust = customers.find((c) => c.id === rem.customerId)
       const phone = cust?.phone?.replace(/\D/g, '') ?? ''
-      const daysPast = Math.floor((Date.now() - new Date(rem.dueDate).getTime()) / 86400000)
+      const daysPast = Math.floor((nowMs - new Date(rem.dueDate).getTime()) / 86400000)
       const res = await fetch('/api/ai/draft-reminder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

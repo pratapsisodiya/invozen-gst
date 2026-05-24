@@ -30,7 +30,7 @@ export function calculateGSTR3BSummary(
   let outwardIntraStateCgst = 0
   let outwardIntraStateSgst = 0
   let zeroRated = 0
-  let exempt = 0
+  const exempt = 0
 
   for (const inv of filtered) {
     if (inv.supplyType === 'inter') {

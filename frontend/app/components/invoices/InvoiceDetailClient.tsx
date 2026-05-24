@@ -13,7 +13,7 @@ import { Modal } from '../ui/Modal'
 import { formatDate } from '@/lib/utils/formatters'
 import { formatAmountInWords } from '@/lib/gst/formatter'
 import { generateId } from '@/lib/utils/ids'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Edit, Download, Send, CreditCard, CheckCircle2, Truck, MessageSquareWarning, Copy, Loader2, AlertCircle } from 'lucide-react'
 import { PAYMENT_METHOD_LABELS } from '@/types/payment'
 import type { PaymentMethod } from '@/types/payment'
@@ -52,10 +52,31 @@ export function InvoiceDetailClient({ id }: { id: string }) {
 
   const invoice = invoices.find((i) => i.id === id)
 
+  const handleSendEmailEarly = useCallback(async () => {
+    const inv = invoices.find((i) => i.id === id)
+    if (!inv) return
+    const cust = customers.find((c) => c.id === inv.customerId)
+    const email = cust?.email
+    if (!email) { addToast({ type: 'error', title: 'No email address for this customer' }); return }
+    try {
+      const res = await fetch(`/api/invoices/${inv.id}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: email }),
+      })
+      const data = await res.json() as { sent?: boolean; reason?: string; error?: string }
+      if (!res.ok) throw new Error(data.error || 'Send failed')
+      markAsSent(inv.id)
+      addToast({ type: 'success', title: data.sent ? `Email sent to ${email}` : 'Marked as sent', message: data.reason })
+    } catch (err) {
+      addToast({ type: 'error', title: 'Could not send email', message: String(err) })
+    }
+  }, [id, invoices, customers, addToast, markAsSent])
+
   // Auto-trigger send email if navigated with ?action=send
   useEffect(() => {
     if (searchParams.get('action') === 'send' && invoice) {
-      handleSendEmail()
+      handleSendEmailEarly()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, invoice?.id])
@@ -209,7 +230,7 @@ export function InvoiceDetailClient({ id }: { id: string }) {
   }
 
   const handleSendEmail = async () => {
-    const cust = customers.find((c) => c.id === invoice.customerId)
+    const cust = customers.find((c) => c.id === invoice!.customerId)
     const email = cust?.email
     if (!email) { addToast({ type: 'error', title: 'No email address for this customer' }); return }
     try {
@@ -226,7 +247,6 @@ export function InvoiceDetailClient({ id }: { id: string }) {
       addToast({ type: 'error', title: 'Could not send email', message: String(err) })
     }
   }
-
   return (
     <div className="flex flex-col flex-1">
       <TopBar
@@ -403,8 +423,8 @@ export function InvoiceDetailClient({ id }: { id: string }) {
               </table>
             </div>
             {/* Totals */}
-            <div className="flex justify-end px-6 py-4" style={{ borderTop: '1px solid var(--border)' }}>
-              <div className="w-64 flex flex-col gap-1.5 text-sm">
+            <div className="flex justify-end px-4 sm:px-6 py-4" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="w-full sm:w-64 flex flex-col gap-1.5 text-sm">
                 <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>Taxable Value</span><span className="tabular-nums" style={{ color: 'var(--text)' }}>₹{invoice.taxableValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
                 {intra ? (
                   <>

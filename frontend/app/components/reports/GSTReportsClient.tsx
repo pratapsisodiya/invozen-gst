@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
 import { usePurchaseStore } from '@/lib/store/purchaseStore'
 import { useBusinessStore } from '@/lib/store/businessStore'
@@ -180,37 +181,37 @@ export function GSTReportsClient({ defaultTab = 'gstr1' }: { defaultTab?: TabKey
         title="GST Reports"
         breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }]}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto">
             <select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="h-9 rounded-lg border px-2 text-sm outline-none"
+              className="h-9 rounded-lg border px-2 text-sm outline-none shrink-0"
               style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
               {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
             </select>
             <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="h-9 rounded-lg border px-2 text-sm outline-none"
+              className="h-9 rounded-lg border px-2 text-sm outline-none shrink-0"
               style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
               {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
-            <button onClick={() => handleDownload('JSON')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
+            <button onClick={() => handleDownload('JSON')} title="Export JSON"
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors shrink-0"
               style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
-              <Download className="w-3.5 h-3.5" /> JSON
+              <Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">JSON</span>
             </button>
-            <button onClick={() => handleDownload('Excel')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
+            <button onClick={() => handleDownload('Excel')} title="Export CSV"
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors shrink-0"
               style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
-              <Download className="w-3.5 h-3.5" /> CSV
+              <Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">CSV</span>
             </button>
-            <button onClick={() => handleDownload('Tally')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors">
-              <Download className="w-3.5 h-3.5" /> Tally XML
+            <button onClick={() => handleDownload('Tally')} title="Export Tally XML"
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors shrink-0">
+              <Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Tally XML</span>
             </button>
             {activeTab === 'gstr1' && (
-              <button onClick={handleAnomalyCheck} disabled={anomalyLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 disabled:opacity-50 transition-colors"
+              <button onClick={handleAnomalyCheck} disabled={anomalyLoading} title="Anomaly Check"
+                className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 disabled:opacity-50 transition-colors shrink-0"
                 style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
                 {anomalyLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-brand-600" />}
-                Anomaly Check
+                <span className="hidden sm:inline">Anomaly Check</span>
               </button>
             )}
           </div>
@@ -492,7 +493,7 @@ export function GSTReportsClient({ defaultTab = 'gstr1' }: { defaultTab?: TabKey
                       <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false}
                         tickFormatter={(v) => v >= 100000 ? `₹${(v / 100000).toFixed(0)}L` : `₹${(v / 1000).toFixed(0)}K`} />
-                      <Tooltip formatter={(v: any) => [`₹${Number(v ?? 0).toLocaleString('en-IN')}`, ''] as any} />
+                      <Tooltip formatter={(v: unknown) => [`₹${Number(v ?? 0).toLocaleString('en-IN')}`, ''] as [string, string]} />
                       <Bar dataKey="taxable" fill="#e2f8f6" name="Taxable" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="gst" fill="#0d9488" name="GST" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -514,7 +515,7 @@ export function GSTReportsClient({ defaultTab = 'gstr1' }: { defaultTab?: TabKey
                             label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`}>
                             {rateWise.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                           </Pie>
-                          <Tooltip formatter={(v: any) => [`₹${Number(v ?? 0).toLocaleString('en-IN')}`, 'Taxable Value'] as any} />
+                          <Tooltip formatter={(v: unknown) => [`₹${Number(v ?? 0).toLocaleString('en-IN')}`, 'Taxable Value'] as [string, string]} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
@@ -569,7 +570,7 @@ export function GSTReportsClient({ defaultTab = 'gstr1' }: { defaultTab?: TabKey
                 </div>
                 <div className="py-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
                   E-invoice generation is not required at the current turnover level.
-                  <br />Go to the <a href="/einvoice" className="text-brand-600 hover:text-brand-700 font-medium">E-Invoice module</a> to manage IRN generation.
+                  <br />Go to the <Link href="/einvoice" className="text-brand-600 hover:text-brand-700 font-medium">E-Invoice module</Link> to manage IRN generation.
                 </div>
               </div>
             </div>

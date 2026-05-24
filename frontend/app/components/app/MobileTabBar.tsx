@@ -43,8 +43,8 @@ export function MobileTabBar() {
       {/* More sheet */}
       {moreOpen && (
         <div
-          className="fixed bottom-16 left-0 right-0 z-50 lg:hidden rounded-t-2xl overflow-hidden"
-          style={{ background: 'white', boxShadow: 'var(--shadow-xl)', borderTop: '1px solid var(--border)' }}
+          className="fixed bottom-16 left-0 right-0 z-50 lg:hidden rounded-t-2xl overflow-y-auto"
+          style={{ background: 'white', boxShadow: 'var(--shadow-xl)', borderTop: '1px solid var(--border)', maxHeight: '60vh' }}
         >
           <div className="px-4 py-3 grid grid-cols-4 gap-2">
             {MORE_ITEMS.map((item) => (

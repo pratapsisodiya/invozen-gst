@@ -40,8 +40,8 @@ export function QuotationDetailClient({ id }: { id: string }) {
 
   const sc = STATUS_COLORS[q.status]
 
-  const handleConvert = () => {
-    const invoiceId = convertToInvoice(id)
+  const handleConvert = async () => {
+    const invoiceId = await convertToInvoice(id)
     if (invoiceId) { addToast({ type: 'success', title: 'Converted to invoice' }); router.push(`/invoices/${invoiceId}`) }
     else addToast({ type: 'error', title: 'Could not convert' })
   }

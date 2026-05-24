@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { usePurchaseStore } from '@/lib/store/purchaseStore'
 import { useUIStore } from '@/lib/store/uiStore'
 import { generateId } from '@/lib/utils/ids'
@@ -157,7 +158,7 @@ export function PurchaseFormClient() {
                     {vendorResults.length === 0 && (
                       <div className="px-3 py-2">
                         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No vendors found</p>
-                        <a href="/vendors/new" className="text-sm text-brand-600 hover:underline">Add new vendor →</a>
+                        <Link href="/vendors/new" className="text-sm text-brand-600 hover:underline">Add new vendor →</Link>
                       </div>
                     )}
                   </div>

@@ -7,6 +7,46 @@ import { ok } from '../lib/response.js'
 const router = Router()
 router.use(requireAuth)
 
+// FY 2024-25 New Tax Regime slabs with 87A rebate, surcharge, and 4% cess
+function calculateIncomeTax(income: number): number {
+  if (income <= 0) return 0
+
+  const slabs = [
+    { limit: 300000, rate: 0 },
+    { limit: 600000, rate: 0.05 },
+    { limit: 900000, rate: 0.10 },
+    { limit: 1200000, rate: 0.15 },
+    { limit: 1500000, rate: 0.20 },
+    { limit: Infinity, rate: 0.30 },
+  ]
+
+  let tax = 0
+  let prev = 0
+  for (const slab of slabs) {
+    if (income <= prev) break
+    const taxable = Math.min(income, slab.limit) - prev
+    tax += taxable * slab.rate
+    prev = slab.limit
+  }
+
+  // Section 87A rebate: full rebate if income ≤ ₹7,00,000 (max rebate ₹25,000)
+  if (income <= 700000) {
+    tax = Math.max(0, tax - Math.min(tax, 25000))
+  }
+
+  // Surcharge
+  let surcharge = 0
+  if (income > 50000000) surcharge = tax * 0.37        // >5Cr
+  else if (income > 20000000) surcharge = tax * 0.25   // 2Cr-5Cr
+  else if (income > 10000000) surcharge = tax * 0.15   // 1Cr-2Cr
+  else if (income > 5000000) surcharge = tax * 0.10    // 50L-1Cr
+
+  // Health & Education Cess: 4%
+  const cess = (tax + surcharge) * 0.04
+
+  return Math.round(tax + surcharge + cess)
+}
+
 /**
  * Freelancer-Specific Features
  *
@@ -78,10 +118,9 @@ router.get('/tax-calculator', async (req, res, next) => {
       }
     }
 
-    // Tax calculations
+    // Tax calculations — FY 2024-25 New Tax Regime slabs (default regime)
     const netProfit = totalRevenue - totalExpenses
-    const incomeTaxRate = 0.30 // 30% for simplicity (actual varies by slab)
-    const estimatedIncomeTax = netProfit > 250000 ? (netProfit - 250000) * incomeTaxRate : 0
+    const estimatedIncomeTax = calculateIncomeTax(netProfit)
 
     // GST liability
     let gstLiability = 0
@@ -134,6 +173,7 @@ router.get('/tax-calculator', async (req, res, next) => {
           taxableIncome: netProfit,
           estimatedTax: estimatedIncomeTax,
           effectiveRate: netProfit > 0 ? (estimatedIncomeTax / netProfit) * 100 : 0,
+          regime: 'new',
         },
         total: totalTaxLiability,
       },

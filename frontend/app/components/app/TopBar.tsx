@@ -38,11 +38,11 @@ export function TopBar({ title, breadcrumb, actions }: TopBarProps) {
         <h1 className="text-base font-semibold truncate" style={{ color: 'var(--text)' }}>{title}</h1>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         {actions}
         <button
           onClick={openShortcutsPanel}
-          className="p-2 rounded-lg hover:bg-ink-50 transition-colors"
+          className="hidden sm:flex p-2 rounded-lg hover:bg-ink-50 transition-colors"
           aria-label="Keyboard shortcuts"
           title="Keyboard shortcuts (?)"
         >
@@ -60,7 +60,7 @@ export function TopBar({ title, breadcrumb, actions }: TopBarProps) {
             </span>
           )}
         </Link>
-        <UserButton showName />
+        <UserButton />
       </div>
     </header>
   )

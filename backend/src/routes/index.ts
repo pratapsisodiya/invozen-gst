@@ -22,6 +22,7 @@ import inventoryRouter from './inventory.js'
 import caClientsRouter from './caClients.js'
 import ewayBillsRouter from './ewayBills.js'
 import paymentGatewayRouter from './paymentGateway.js'
+import aiRouter from './ai.js'
 
 const router = Router()
 
@@ -48,5 +49,6 @@ router.use('/inventory', inventoryRouter)
 router.use('/ca-clients', caClientsRouter)
 router.use('/eway-bills', ewayBillsRouter)
 router.use('/payment-gateway', paymentGatewayRouter)
+router.use('/ai', aiRouter)
 
 export default router

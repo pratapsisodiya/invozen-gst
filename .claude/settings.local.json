@@ -12,7 +12,31 @@
       "Bash(npx tsc *)",
       "Bash(npx expo *)",
       "Bash(node scripts/sync-shared.js)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(grep -r \"any\\\\|as const\\\\|//\" --include=\"*.ts\" --include=\"*.tsx\" lib/gst app/api)",
+      "Bash(grep -E \"tsx$|tsx/$\")",
+      "Bash(head -133 \"C:/Users/prata/.claude/plans/now-listen-find-error-playful-wadler.md\")",
+      "Bash(mv \"C:/Users/prata/.claude/plans/now-listen-find-error-playful-wadler.md.tmp\" \"C:/Users/prata/.claude/plans/now-listen-find-error-playful-wadler.md\")",
+      "Bash(grep -E \"\\\\.ts$\")",
+      "Bash(grep \"\\\\.ts$\")",
+      "Bash(xargs ls *)",
+      "Bash(npm list *)",
+      "Bash(npx prisma *)",
+      "Bash(cp .env.example .env)",
+      "Bash(echo 'PORT=4000 *)",
+      "Bash(timeout 8 npx tsx src/index.ts)",
+      "Bash(npx tsx *)",
+      "Bash(curl -s http://localhost:4000/health)",
+      "Bash(curl -s http://localhost:4000/api/v1/customers)",
+      "Bash(kill %1)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(dir \"D:\\\\testing\\\\Invozen GST\")",
+      "Bash(dir /b /ad \"D:\\\\testing\\\\Invozen GST\\\\frontend\\\\app\\\\components\")",
+      "Bash(git -C \"D:\\\\testing\\\\Invozen GST\\\\frontend\" status --porcelain)",
+      "Bash(git *)",
+      "Bash(cat)",
+      "Bash(bash /tmp/check_ai_issues.sh)",
+      "Bash(chmod +x *)"
     ]
   }
 }

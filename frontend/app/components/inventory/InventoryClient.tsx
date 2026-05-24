@@ -45,7 +45,7 @@ export function InventoryClient() {
 
       <div className="flex-1 p-4 lg:p-6 flex flex-col gap-5">
         {/* KPIs */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {[
             { label: 'Tracked Items', value: totalItems, icon: Package, color: 'text-brand-600' },
             { label: 'Low Stock Alerts', value: lowStockCount, icon: AlertTriangle, color: lowStockCount > 0 ? 'text-err-600' : 'text-ok-600' },
@@ -63,14 +63,15 @@ export function InventoryClient() {
           <div className="rounded-xl p-8 text-center" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <Package className="w-10 h-10 mx-auto mb-3 text-brand-600 opacity-40" />
             <p className="text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>No inventory items tracked</p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Enable "Track Inventory" on items to see stock levels here</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Enable &ldquo;Track Inventory&rdquo; on items to see stock levels here</p>
           </div>
         ) : (
           <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
             <div className="px-4 py-3" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
               <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Stock Levels</h3>
             </div>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   {['Item', 'Current Stock', 'Reorder Point', 'Status', 'Last Movement'].map((h) => (
@@ -113,6 +114,7 @@ export function InventoryClient() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 

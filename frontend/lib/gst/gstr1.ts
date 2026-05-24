@@ -16,7 +16,7 @@ export function calculateGSTR1Summary(
   const cdnr: GSTR1B2BEntry[] = []
   let nilRated = 0
   let exempted = 0
-  let nonGst = 0
+  const nonGst = 0
   let missingHsnCount = 0
   let skippedEmptyLineItems = 0
 

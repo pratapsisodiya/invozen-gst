@@ -7,11 +7,9 @@ import { apiFetch } from '../api/fetch'
 interface BusinessState {
   profile: BusinessProfile
   settings: AppSettings
-  isSeeded: boolean
   updateProfile: (partial: Partial<BusinessProfile>) => Promise<void>
   updateSettings: (partial: Partial<AppSettings>) => Promise<void>
   updateBankBalance: (amount: number) => void
-  setSeeded: () => void
   init: () => Promise<void>
 }
 
@@ -81,7 +79,6 @@ export const useBusinessStore = create<BusinessState>()(
     immer((set, get) => ({
       profile: defaultProfile,
       settings: defaultSettings,
-      isSeeded: false,
 
       init: async () => {
         try {
@@ -127,8 +124,6 @@ export const useBusinessStore = create<BusinessState>()(
       },
 
       updateBankBalance: (amount) => set((state) => { state.settings.currentBankBalance = amount }),
-
-      setSeeded: () => set((state) => { state.isSeeded = true }),
     })),
     { name: 'invozen-business' }
   )

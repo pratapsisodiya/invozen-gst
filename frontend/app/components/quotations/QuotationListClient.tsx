@@ -52,8 +52,8 @@ export function QuotationListClient() {
     [quotations, search, activeTab]
   )
 
-  const handleConvert = (id: string) => {
-    const invoiceId = convertToInvoice(id)
+  const handleConvert = async (id: string) => {
+    const invoiceId = await convertToInvoice(id)
     if (invoiceId) { addToast({ type: 'success', title: 'Converted to invoice' }); router.push(`/invoices/${invoiceId}`) }
     else addToast({ type: 'error', title: 'Could not convert' })
   }

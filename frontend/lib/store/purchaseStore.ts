@@ -5,6 +5,7 @@ import type { Vendor, PurchaseInvoice, PurchaseFilter } from '../../types/purcha
 import type { ITCReversalReason } from '../../types/itcReversal'
 import { apiFetch } from '../api/fetch'
 import { generateId } from '../utils/ids'
+import { useITCReversalStore } from './itcReversalStore'
 
 interface PurchaseState {
   vendors: Vendor[]
@@ -185,7 +186,6 @@ export const usePurchaseStore = create<PurchaseState>()(
         const round2 = (n: number) => Math.round(n * 100) / 100
 
         // Create reversal record in itcReversalStore
-        const { useITCReversalStore } = require('./itcReversalStore') as { useITCReversalStore: { getState: () => { addReversal: (r: unknown) => void } } }
         useITCReversalStore.getState().addReversal({
           id: generateId(),
           reversalDate: new Date().toISOString().split('T')[0],

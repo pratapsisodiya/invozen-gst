@@ -141,8 +141,8 @@ export function BankReconClient() {
           <ol className="list-decimal pl-4 space-y-0.5" style={{ color: 'var(--text-muted)' }}>
             <li>Download your bank statement as CSV from net banking</li>
             <li>Upload the CSV below — it will auto-match with your recorded payments</li>
-            <li>Select matched transactions and click "Reconcile" to confirm them</li>
-            <li>For unmatched bank credits, click "Record" to create payment records</li>
+            <li>Select matched transactions and click &ldquo;Reconcile&rdquo; to confirm them</li>
+            <li>For unmatched bank credits, click &ldquo;Record&rdquo; to create payment records</li>
           </ol>
         </div>
 
@@ -254,7 +254,7 @@ export function BankReconClient() {
               <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
                 <div className="px-4 py-3" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
                   <h3 className="text-sm font-semibold text-warn-700">Bank Credits Not Matched ({result.unmatchedBank.length})</h3>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Click "Record" to create a payment for each unmatched credit</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Click &ldquo;Record&rdquo; to create a payment for each unmatched credit</p>
                 </div>
                 <table className="w-full text-sm">
                   <tbody>
