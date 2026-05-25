@@ -7,11 +7,13 @@ import apiRouter from './routes/index.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { apiLimiter } from './middleware/rateLimit.js'
 
+const securityHelmet = helmet as unknown as (options?: Parameters<typeof helmet>[0]) => ReturnType<typeof express>
+
 export function createApp() {
   const app = express()
 
   // Security headers
-  app.use(helmet({
+  app.use(securityHelmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
