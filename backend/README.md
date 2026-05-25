@@ -226,6 +226,20 @@ Authorization: Bearer <clerk_jwt_token>
 
 The `requireAuth` middleware validates the token and extracts `userId` from the JWT payload.
 
+## Deploying On Vercel
+
+This backend can run as Vercel Node functions without changing the Express route tree.
+
+1. Deploy the `backend/` folder as its own Vercel project.
+2. Set the required environment variables in Vercel, especially `DATABASE_URL`, `CLERK_SECRET_KEY`, and `FRONTEND_URL`.
+3. Run Prisma migrations against the production database before or during deployment with `prisma migrate deploy`.
+4. Use `/api/v1/*` for the REST API and `/health` for the health check. Vercel rewrites `/` and `/health` to the health function.
+
+Notes:
+- File uploads already use Cloudinary and in-memory parsing, which is compatible with serverless deployment.
+- The Prisma client is generated during install via `postinstall`, and `vercel-build` also runs `prisma generate` before the TypeScript build.
+- If the frontend is hosted separately, update `FRONTEND_URL` to that deployed origin so CORS stays open for the app.
+
 ## Security Features
 
 ### Rate Limiting
