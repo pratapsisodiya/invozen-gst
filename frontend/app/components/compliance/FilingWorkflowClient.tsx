@@ -223,7 +223,7 @@ export function FilingWorkflowClient() {
 
   return (
     <div className="flex flex-col flex-1">
-      <TopBar title="Filing Workflow" breadcrumb={[{ label: 'Compliance', href: '/compliance' }]} />
+      <TopBar title="Filing Workflow" />
 
       <div className="flex-1 p-4 lg:p-6 flex flex-col gap-4">
         <div className="flex gap-2 flex-wrap">

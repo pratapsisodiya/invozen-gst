@@ -1,5 +1,6 @@
 import type { CustomerStatement } from '@/lib/gst/statementGenerator'
 import type { Customer } from '@/types/customer'
+import { appendPdfAiAssistSection } from '@/lib/pdf/pdfAiAssist'
 
 export async function downloadCustomerStatementPdf(
   statement: CustomerStatement,
@@ -151,6 +152,22 @@ export async function downloadCustomerStatementPdf(
   doc.setFontSize(7.5)
   doc.setFont('helvetica', 'normal')
   doc.text('This is a computer-generated statement.', pageW / 2, 290, { align: 'center' })
+
+  await appendPdfAiAssistSection(doc, y - 2, {
+    documentType: 'Customer Statement',
+    businessName,
+    summary: `Statement for ${customer.name} covers ${statement.fromDate} to ${statement.toDate}. Closing balance is ₹${statement.closingBalance.toLocaleString('en-IN')}.`,
+    highlights: [
+      `Opening balance: ₹${statement.openingBalance.toLocaleString('en-IN')}`,
+      `Total invoiced: ₹${statement.totalInvoiced.toLocaleString('en-IN')}`,
+      `Total paid: ₹${statement.totalPaid.toLocaleString('en-IN')}`,
+    ],
+    metrics: [
+      { label: 'Closing Balance', value: `₹${statement.closingBalance.toLocaleString('en-IN')}` },
+      { label: 'Overdue Focus', value: 'Oldest dues first' },
+      { label: 'Customer', value: customer.name },
+    ],
+  })
 
   doc.save(`Statement_${customer.name.replace(/\s+/g, '_')}_${statement.fromDate}_${statement.toDate}.pdf`)
 }

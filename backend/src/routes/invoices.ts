@@ -9,6 +9,7 @@ import { NicIrpService } from '../lib/einvoice/nicIrp.js'
 import { generateId } from '../lib/id.js'
 import { createInvoiceSchema, updateInvoiceSchema, cancelIrnSchema } from '../lib/validation/invoice.js'
 import { ZodError } from 'zod'
+import { sendInvoiceEmail } from '../lib/email/index.js'
 
 const router = Router()
 router.use(requireAuth)
@@ -276,6 +277,69 @@ router.post('/:id/cancel-irn', irnLimiter, async (req, res, next) => {
     })
 
     ok(res, updated)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// POST /invoices/:id/send-email
+router.post('/:id/send-email', async (req, res, next) => {
+  try {
+    const userId = (req as unknown as AuthRequest).userId
+    const { to } = req.body as { to: string }
+
+    if (!to) {
+      return badRequest(res, 'Recipient email (to) is required')
+    }
+
+    // 1. Fetch invoice
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: req.params['id'], userId },
+    })
+    if (!invoice) {
+      return notFound(res, 'Invoice not found')
+    }
+
+    // 2. Fetch business profile
+    const profile = await prisma.businessProfile.findFirst({
+      where: { userId },
+    })
+    if (!profile) {
+      return badRequest(res, 'Business profile must be configured to send emails')
+    }
+
+    // 3. Send email using helper
+    const invoiceData = invoice.data as any
+    const businessData = profile.data as any
+
+    const result = await sendInvoiceEmail(invoiceData, businessData, to)
+
+    // 4. Update invoice status to 'sent' if it was 'draft'
+    if (invoiceData.status === 'draft') {
+      const merged = { ...invoiceData, status: 'sent', sentAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+      await prisma.invoice.update({
+        where: { id: req.params['id'] },
+        data: {
+          status: 'sent',
+          data: toJson(merged),
+          updatedAt: new Date(),
+        },
+      })
+    }
+
+    // 5. Audit Log Entry
+    await prisma.auditEntry.create({
+      data: {
+        id: generateId(),
+        userId,
+        entity: 'invoice',
+        entityId: req.params['id'],
+        action: 'send_email',
+        data: toJson({ to, result }),
+      },
+    })
+
+    ok(res, result)
   } catch (err) {
     next(err)
   }

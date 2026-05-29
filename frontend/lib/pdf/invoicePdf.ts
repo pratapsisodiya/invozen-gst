@@ -1,5 +1,6 @@
 import type { Invoice } from '@/types/invoice'
 import type { BusinessProfile, AppSettings } from '@/types/business'
+import { appendPdfAiAssistSection } from '@/lib/pdf/pdfAiAssist'
 
 export async function downloadInvoicePdf(
   invoice: Invoice,
@@ -297,6 +298,22 @@ export async function downloadInvoicePdf(
       // Continue without QR code
     }
   }
+
+  await appendPdfAiAssistSection(doc, y, {
+    documentType: 'Invoice',
+    businessName: profile.businessName,
+    summary: `Invoice ${invoice.invoiceNumber} for ${invoice.customerSnapshot.name}. Grand total is Rs. ${invoice.grandTotal.toLocaleString('en-IN')} and balance due is Rs. ${invoice.balanceDue.toLocaleString('en-IN')}.`,
+    highlights: [
+      `Due date: ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}`,
+      `Status: ${invoice.status}`,
+      `GST collected: Rs. ${invoice.totalTax.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+    ],
+    metrics: [
+      { label: 'Balance Due', value: `Rs. ${invoice.balanceDue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` },
+      { label: 'Tax', value: `Rs. ${invoice.totalTax.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` },
+      { label: 'Supply', value: invoice.supplyType === 'intra' ? 'Intra-state' : 'Inter-state' },
+    ],
+  })
 
   // Footer
   const footerY = 285

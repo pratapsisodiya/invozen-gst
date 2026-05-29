@@ -4,6 +4,7 @@ import type { Customer } from '@/types/customer'
 import type { BusinessProfile } from '@/types/business'
 import { PAYMENT_METHOD_LABELS } from '@/types/payment'
 import { formatAmountInWords } from '@/lib/gst/formatter'
+import { appendPdfAiAssistSection } from '@/lib/pdf/pdfAiAssist'
 
 export async function downloadPaymentReceiptPdf(
   payment: Payment,
@@ -140,6 +141,22 @@ export async function downloadPaymentReceiptPdf(
   doc.setFontSize(7.5)
   doc.setTextColor(150, 150, 150)
   doc.text('This is a computer-generated receipt. No signature required.', pageW / 2, y, { align: 'center' })
+
+  await appendPdfAiAssistSection(doc, y + 4, {
+    documentType: 'Payment Receipt',
+    businessName: profile.businessName,
+    summary: `Receipt ${receiptNumber} records Rs. ${payment.amount.toLocaleString('en-IN')} received from ${customer.name}. The payment method is ${PAYMENT_METHOD_LABELS[payment.method]}.`,
+    highlights: [
+      `Receipt date: ${new Date(payment.paymentDate).toLocaleDateString('en-IN')}`,
+      `Method: ${PAYMENT_METHOD_LABELS[payment.method]}`,
+      `Invoices covered: ${invoices.length}`,
+    ],
+    metrics: [
+      { label: 'Amount Received', value: `Rs. ${payment.amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` },
+      { label: 'Customer', value: customer.name },
+      { label: 'Invoices', value: String(invoices.length) },
+    ],
+  })
 
   doc.save(`Receipt_${receiptNumber}.pdf`)
 }

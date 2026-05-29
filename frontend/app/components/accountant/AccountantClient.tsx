@@ -25,10 +25,7 @@ export function AccountantClient() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
   const [comment, setComment] = useState('')
-  const [flags, setFlags] = useState<Array<{ id: string; issue: string; comment: string; resolved: boolean }>>([
-    { id: 'f1', issue: 'Missing GSTIN for customer "Ravi Sharma"', comment: '', resolved: false },
-    { id: 'f2', issue: '3 invoices with 0% GST may need HSN correction', comment: '', resolved: false },
-  ])
+  const [flags, setFlags] = useState<Array<{ id: string; issue: string; comment: string; resolved: boolean }>>([])
 
   const period = { month: selectedMonth, year: selectedYear }
 

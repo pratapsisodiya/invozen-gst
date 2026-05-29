@@ -11,7 +11,6 @@ import { useQuotationStore } from '@/lib/store/quotationStore'
 import { useCreditNoteStore } from '@/lib/store/creditNoteStore'
 import { useRecurringStore } from '@/lib/store/recurringStore'
 import { useNotificationStore } from '@/lib/store/notificationStore'
-import { generateComplianceEvents } from '@/lib/gst/complianceCalendar'
 
 // One-time clear of old mock localStorage data from previous sessions
 const MOCK_CLEARED_KEY = 'invozen-mock-cleared-v1'
@@ -45,27 +44,6 @@ function checkAndNotifyOverdueInvoices() {
           linkUrl,
         })
       }
-    }
-  }
-}
-
-function checkFilingDeadlines() {
-  const { addNotification, notifications } = useNotificationStore.getState()
-  const today = new Date()
-  const compliance = generateComplianceEvents('monthly', {})
-  if (!compliance.nextDue) return
-
-  const dueDate = new Date(compliance.nextDue.dueDate)
-  const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / 86400000)
-  if (daysUntil <= 5 && daysUntil >= 0) {
-    const alreadyHas = notifications.some((n) => n.type === 'gst_due' && !n.isRead)
-    if (!alreadyHas) {
-      addNotification({
-        type: 'gst_due',
-        title: `GST Filing Due${daysUntil === 0 ? ' Today' : ` in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`}`,
-        message: `File your ${compliance.nextDue.type} return by ${dueDate.toLocaleDateString('en-IN')}`,
-        linkUrl: '/filing-workflow',
-      })
     }
   }
 }
@@ -104,7 +82,6 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
       await executeAllOverdue()
       expireOverdueQuotations()
       checkAndNotifyOverdueInvoices()
-      checkFilingDeadlines()
     })
   }, [
     initInvoices, initCustomers, initItems, initPayments, initBusiness,

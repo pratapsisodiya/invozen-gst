@@ -1,6 +1,6 @@
 import type { Quotation } from '@/types/quotation'
 import type { BusinessProfile } from '@/types/business'
-import { CREDIT_NOTE_REASON_LABELS } from '@/types/creditNote'
+import { appendPdfAiAssistSection } from '@/lib/pdf/pdfAiAssist'
 
 export async function downloadQuotationPdf(
   q: Quotation,
@@ -175,6 +175,22 @@ export async function downloadQuotationPdf(
     doc.setTextColor(80, 80, 80)
     doc.text(doc.splitTextToSize(q.terms, contentW), margin, y + 5)
   }
+
+  await appendPdfAiAssistSection(doc, y, {
+    documentType: 'Quotation',
+    businessName: profile.businessName,
+    summary: `Quotation ${q.quotationNumber} for ${q.customerSnapshot.name}. The quotation total is Rs. ${q.grandTotal.toLocaleString('en-IN')} and it is valid until ${new Date(q.validUntil).toLocaleDateString('en-IN')}.`,
+    highlights: [
+      `Status: ${q.status.toUpperCase()}`,
+      `Supply type: ${q.supplyType === 'intra' ? 'Intra-state' : 'Inter-state'}`,
+      `Line items: ${q.lineItems.length}`,
+    ],
+    metrics: [
+      { label: 'Grand Total', value: `Rs. ${q.grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` },
+      { label: 'Valid Until', value: new Date(q.validUntil).toLocaleDateString('en-IN') },
+      { label: 'Customer', value: q.customerSnapshot.name },
+    ],
+  })
 
   // Footer
   doc.setFillColor(13, 148, 136)

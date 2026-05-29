@@ -1,3 +1,23 @@
+/* Global green scrollbar (modern browsers)
+   Use the brand green color and a subtle track. Applied globally, but also usable via .green-scrollbar class. */
+::selection { background: rgba(13,148,136,0.14); }
+
+/* WebKit browsers */
+*::-webkit-scrollbar { width: 12px; height: 12px; }
+*::-webkit-scrollbar-track { background: var(--bg); border-radius: 999px; }
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--color-brand-400), var(--color-brand-600));
+  border-radius: 999px;
+  border: 3px solid var(--bg);
+}
+
+/* Firefox */
+:root { scrollbar-width: thin; scrollbar-color: var(--color-brand-600) var(--bg); }
+
+/* Utility class to opt-in smaller elements */
+.green-scrollbar { overflow: auto; }
+.green-scrollbar::-webkit-scrollbar { height: 10px; }
+.green-scrollbar::-webkit-scrollbar-thumb { border-radius: 999px; }
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────

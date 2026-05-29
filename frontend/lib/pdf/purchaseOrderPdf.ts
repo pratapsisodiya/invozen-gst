@@ -1,5 +1,6 @@
 import type { PurchaseInvoice } from '@/types/purchase'
 import type { BusinessProfile } from '@/types/business'
+import { appendPdfAiAssistSection } from '@/lib/pdf/pdfAiAssist'
 
 export async function downloadPurchaseOrderPdf(
   purchase: PurchaseInvoice,
@@ -176,6 +177,22 @@ export async function downloadPurchaseOrderPdf(
     doc.setTextColor(80, 80, 80)
     doc.text(doc.splitTextToSize(purchase.notes, contentW), margin, y + 5)
   }
+
+  await appendPdfAiAssistSection(doc, y, {
+    documentType: 'Purchase Order',
+    businessName: profile.businessName,
+    summary: `Purchase order ${purchase.purchaseNumber} from ${purchase.vendorSnapshot.name}. Total value is Rs. ${purchase.grandTotal.toLocaleString('en-IN')} and eligible ITC is Rs. ${purchase.itcAvailable.toLocaleString('en-IN')}.`,
+    highlights: [
+      `ITC claimed: Rs. ${purchase.itcClaimed.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+      `ITC status: ${purchase.itcStatus}`,
+      `Line items: ${purchase.lineItems.length}`,
+    ],
+    metrics: [
+      { label: 'Total Value', value: `Rs. ${purchase.grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` },
+      { label: 'ITC Available', value: `Rs. ${purchase.itcAvailable.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` },
+      { label: 'Vendor', value: purchase.vendorSnapshot.name },
+    ],
+  })
 
   // Footer
   doc.setFillColor(13, 148, 136)

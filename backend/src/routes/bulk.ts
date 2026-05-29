@@ -6,6 +6,7 @@ import { toJson } from '../lib/prisma.js'
 import { ok, badRequest } from '../lib/response.js'
 import { generateId } from '../lib/id.js'
 import { z } from 'zod'
+import { sendInvoiceEmail } from '../lib/email/index.js'
 
 const router = Router()
 router.use(requireAuth)
@@ -133,11 +134,21 @@ router.post('/invoices/email', async (req, res, next) => {
           continue
         }
 
-        // In production, send email here
-        // await sendInvoiceEmail(invoice, validated.subject, validated.message)
-
-        // Update invoice status
+        // Get customer email and business profile for sending
         const invoiceData = invoice.data as any
+        const customerEmail = invoiceData.customerSnapshot?.email as string | undefined
+
+        if (customerEmail) {
+          const businessProfile = await prisma.businessProfile.findFirst({ where: { userId } })
+          const businessData = businessProfile?.data ?? {}
+          try {
+            await sendInvoiceEmail(invoiceData, businessData, customerEmail)
+          } catch (emailErr) {
+            // Email failure is non-fatal — log and continue
+            console.error(`[bulk email] Failed for invoice ${invoiceId}:`, emailErr)
+          }
+        }
+
         const updated = { ...invoiceData, status: 'sent', sentAt: new Date().toISOString() }
 
         await prisma.invoice.update({

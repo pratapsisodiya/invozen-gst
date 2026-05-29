@@ -6,7 +6,7 @@ import { enforceSingleUser } from '../middleware/singleUser.js'
 import { prisma } from '../lib/prisma.js'
 import { toJson } from '../lib/prisma.js'
 import { ok, forbidden, badRequest, notFound } from '../lib/response.js'
-import { uploadLogo } from '../lib/cloudinary/index.js'
+import { uploadLogo, deleteLogo, uploadSignature, deleteSignature } from '../lib/cloudinary/index.js'
 
 const router = Router()
 router.use(requireAuth)
@@ -72,14 +72,16 @@ router.post('/upload-logo', upload.single('logo'), async (req, res, next) => {
     // Upload to Cloudinary
     const logoUrl = await uploadLogo(req.file.buffer, userId)
 
-    // Update BusinessProfile with logo URL
+    // Update BusinessProfile with logo URL nested inside profile
     const existing = await prisma.businessProfile.findFirst({ where: { userId } })
     if (!existing) {
       return notFound(res, 'Business profile not found')
     }
 
-    const businessData = existing.data as Record<string, unknown>
-    const updated = { ...businessData, logoUrl }
+    const businessData = existing.data as any
+    const profile = businessData.profile || {}
+    const updatedProfile = { ...profile, logoUrl }
+    const updated = { ...businessData, profile: updatedProfile }
 
     await prisma.businessProfile.update({
       where: { id: existing.id },
@@ -87,6 +89,100 @@ router.post('/upload-logo', upload.single('logo'), async (req, res, next) => {
     })
 
     ok(res, { logoUrl })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// DELETE /business/logo
+router.delete('/logo', async (req, res, next) => {
+  try {
+    const userId = (req as unknown as AuthRequest).userId
+
+    // Delete from Cloudinary
+    await deleteLogo(userId).catch(() => {})
+
+    // Update BusinessProfile to remove logo URL
+    const existing = await prisma.businessProfile.findFirst({ where: { userId } })
+    if (!existing) {
+      return notFound(res, 'Business profile not found')
+    }
+
+    const businessData = existing.data as any
+    const profile = businessData.profile || {}
+    const updatedProfile = { ...profile, logoUrl: null }
+    const updated = { ...businessData, profile: updatedProfile }
+
+    await prisma.businessProfile.update({
+      where: { id: existing.id },
+      data: { data: toJson(updated), updatedAt: new Date() },
+    })
+
+    ok(res, { success: true })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// POST /business/upload-signature
+router.post('/upload-signature', upload.single('signature'), async (req, res, next) => {
+  try {
+    const userId = (req as unknown as AuthRequest).userId
+
+    if (!req.file) {
+      return badRequest(res, 'No file uploaded')
+    }
+
+    // Upload to Cloudinary
+    const signatureUrl = await uploadSignature(req.file.buffer, userId)
+
+    // Update BusinessProfile with signature URL nested inside profile
+    const existing = await prisma.businessProfile.findFirst({ where: { userId } })
+    if (!existing) {
+      return notFound(res, 'Business profile not found')
+    }
+
+    const businessData = existing.data as any
+    const profile = businessData.profile || {}
+    const updatedProfile = { ...profile, signatureUrl }
+    const updated = { ...businessData, profile: updatedProfile }
+
+    await prisma.businessProfile.update({
+      where: { id: existing.id },
+      data: { data: toJson(updated), updatedAt: new Date() },
+    })
+
+    ok(res, { signatureUrl })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// DELETE /business/signature
+router.delete('/signature', async (req, res, next) => {
+  try {
+    const userId = (req as unknown as AuthRequest).userId
+
+    // Delete from Cloudinary
+    await deleteSignature(userId).catch(() => {})
+
+    // Update BusinessProfile to remove signature URL
+    const existing = await prisma.businessProfile.findFirst({ where: { userId } })
+    if (!existing) {
+      return notFound(res, 'Business profile not found')
+    }
+
+    const businessData = existing.data as any
+    const profile = businessData.profile || {}
+    const updatedProfile = { ...profile, signatureUrl: null }
+    const updated = { ...businessData, profile: updatedProfile }
+
+    await prisma.businessProfile.update({
+      where: { id: existing.id },
+      data: { data: toJson(updated), updatedAt: new Date() },
+    })
+
+    ok(res, { success: true })
   } catch (err) {
     next(err)
   }

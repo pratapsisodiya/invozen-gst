@@ -11,14 +11,11 @@ import { AmountDisplay } from '../ui/AmountDisplay'
 import { formatDate } from '@/lib/utils/formatters'
 import { Plus, Users, BarChart2, Bell, FileText, TrendingUp, ShoppingCart, CheckCircle, Clock, AlertTriangle, Sparkles, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { usePurchaseStore } from '@/lib/store/purchaseStore'
-import { generateComplianceEvents, daysUntilDue } from '@/lib/gst/complianceCalendar'
 import { RevenueChart } from './RevenueChart'
 import { TopCustomersCard } from './TopCustomersCard'
 import { CAPriorityBoard } from './CAPriorityBoard'
-import { ComplianceHealthCard } from './ComplianceHealthCard'
 import { AIHealthReportModal } from '../ai/AIHealthReportModal'
 import { AgingReportCard } from '../customers/AgingReportCard'
-import { TaxCountdownCard } from './TaxCountdownCard'
 import { CashFlowForecastCard } from './CashFlowForecastCard'
 import { ITCOptimizerCard } from './ITCOptimizerCard'
 import { AnomalyDetectorCard } from './AnomalyDetectorCard'
@@ -35,10 +32,6 @@ export function DashboardClient() {
   const { customers } = useCustomerStore()
   const { getItcSummary } = usePurchaseStore()
   const [showHealthReport, setShowHealthReport] = useState(false)
-
-  const complianceSummary = useMemo(() => generateComplianceEvents('monthly', {}), [])
-  const nextFiling = complianceSummary.nextDue
-  const overdueFilings = complianceSummary.overdue.length
 
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
@@ -155,23 +148,6 @@ export function DashboardClient() {
           </div>
         )}
 
-        {/* Compliance Banner */}
-        {(overdueFilings > 0 || (nextFiling && daysUntilDue(nextFiling.dueDate) <= 7)) && (
-          <Link
-            href="/compliance"
-            className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${overdueFilings > 0 ? 'bg-red-50 border border-red-200 text-red-700 hover:bg-red-100' : 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100'}`}
-          >
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              {overdueFilings > 0
-                ? `${overdueFilings} overdue GST filing${overdueFilings > 1 ? 's' : ''} — file now to avoid penalties`
-                : nextFiling
-                  ? `${nextFiling.type} for ${nextFiling.period} due in ${daysUntilDue(nextFiling.dueDate)} days`
-                  : null}
-            </div>
-            <span className="text-xs font-semibold">View Calendar →</span>
-          </Link>
-        )}
 
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -226,8 +202,6 @@ export function DashboardClient() {
           )
         })()}
 
-        {/* Tax Liability Countdown */}
-        <TaxCountdownCard />
 
         {/* Aging Report */}
         <AgingReportCard />
@@ -250,7 +224,6 @@ export function DashboardClient() {
 
         <CAPriorityBoard />
 
-        <ComplianceHealthCard />
 
         {/* Charts row */}
         <div className="grid lg:grid-cols-3 gap-4">

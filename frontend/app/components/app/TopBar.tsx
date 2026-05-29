@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { UserButton } from '@clerk/nextjs'
+import { useUser } from '@clerk/nextjs'
 import { Bell, Keyboard } from 'lucide-react'
 import { useNotificationStore } from '@/lib/store/notificationStore'
 import { useUIStore } from '@/lib/store/uiStore'
@@ -14,10 +14,11 @@ interface TopBarProps {
 export function TopBar({ title, breadcrumb, actions }: TopBarProps) {
   const { unreadCount } = useNotificationStore()
   const { openShortcutsPanel } = useUIStore()
+  const { user } = useUser()
 
   return (
     <header
-      className="sticky top-0 z-30 flex items-center justify-between h-14 px-4 lg:px-6 flex-shrink-0"
+      className="sticky top-0 z-30 flex items-center justify-between h-14 px-4 lg:px-6 flex-shrink-0 green-scrollbar overflow-x-auto"
       style={{ background: 'white', borderBottom: '1px solid var(--border)' }}
     >
       <div className="flex items-center gap-2 min-w-0">
@@ -60,7 +61,20 @@ export function TopBar({ title, breadcrumb, actions }: TopBarProps) {
             </span>
           )}
         </Link>
-        <UserButton />
+        {/* User avatar (shows Google/Clerk profile image when available) */}
+        <Link href="/account" className="p-1 rounded-full hover:bg-ink-50 transition-colors">
+          {user?.imageUrl || (user as any)?.profileImageUrl ? (
+            <img
+              src={(user as any).imageUrl ?? (user as any).profileImageUrl}
+              alt={user?.firstName ?? 'User'}
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-[12px] font-medium text-neutral-700">
+              {user?.firstName?.[0] ?? user?.primaryEmailAddress?.[0] ?? 'U'}
+            </div>
+          )}
+        </Link>
       </div>
     </header>
   )

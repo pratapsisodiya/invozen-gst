@@ -1,6 +1,7 @@
 import type { CreditNote } from '@/types/creditNote'
 import type { BusinessProfile } from '@/types/business'
 import { CREDIT_NOTE_REASON_LABELS } from '@/types/creditNote'
+import { appendPdfAiAssistSection } from '@/lib/pdf/pdfAiAssist'
 
 export async function downloadCreditNotePdf(
   cn: CreditNote,
@@ -165,6 +166,22 @@ export async function downloadCreditNotePdf(
     doc.setTextColor(80, 80, 80)
     doc.text(doc.splitTextToSize(cn.notes, contentW), margin, y + 5)
   }
+
+  await appendPdfAiAssistSection(doc, y, {
+    documentType: 'Credit Note',
+    businessName: profile.businessName,
+    summary: `Credit note ${cn.creditNoteNumber} for ${cn.customerSnapshot.name}. The adjustment total is Rs. ${cn.grandTotal.toLocaleString('en-IN')}, linked to invoice ${cn.linkedInvoiceNumber}.`,
+    highlights: [
+      `Reason: ${CREDIT_NOTE_REASON_LABELS[cn.reason]}`,
+      `Status: ${cn.status}`,
+      `Tax reversal: Rs. ${(cn.cgstTotal + cn.sgstTotal + cn.igstTotal).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+    ],
+    metrics: [
+      { label: 'Note Total', value: `Rs. ${cn.grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` },
+      { label: 'Original Invoice', value: cn.linkedInvoiceNumber },
+      { label: 'Reason', value: CREDIT_NOTE_REASON_LABELS[cn.reason] },
+    ],
+  })
 
   // Footer
   doc.setFillColor(13, 148, 136)

@@ -1,19 +1,20 @@
 'use client'
-import { useEffect, useState, startTransition } from 'react'
+import { useEffect, useState, startTransition, use } from 'react'
 import { parsePortalToken } from '@/lib/portal/portalToken'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
 import { useCustomerStore } from '@/lib/store/customerStore'
 import { formatDate } from '@/lib/utils/formatters'
 import { StatusBadge } from '@/app/components/ui/Badge'
 
-export default function CustomerPortalPage({ params }: { params: { token: string } }) {
+export default function CustomerPortalPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = use(params)
   const [error, setError] = useState('')
   const [customerId, setCustomerId] = useState<string | null>(null)
   const { invoices } = useInvoiceStore()
   const { customers } = useCustomerStore()
 
   useEffect(() => {
-    const payload = parsePortalToken(params.token)
+    const payload = parsePortalToken(token)
     startTransition(() => {
       if (!payload) {
         setError('This link is invalid or has expired. Please contact the business for a new link.')
@@ -21,7 +22,7 @@ export default function CustomerPortalPage({ params }: { params: { token: string
         setCustomerId(payload.customerId)
       }
     })
-  }, [params.token])
+  }, [token])
 
   if (error) {
     return (

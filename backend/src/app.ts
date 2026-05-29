@@ -48,7 +48,13 @@ export function createApp() {
   app.use(morgan(config.NODE_ENV === 'production' ? 'combined' : 'dev'))
 
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() })
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptimeSeconds: Math.round(process.uptime()),
+      environment: config.NODE_ENV,
+      version: process.env.npm_package_version || 'unknown',
+    })
   })
 
   // Apply rate limiting to all API routes

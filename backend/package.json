@@ -29,8 +29,11 @@
     "express-rate-limit": "^8.5.0",
     "groq-sdk": "^1.2.0",
     "helmet": "^8.1.0",
+    "invozen-gst": "file:..",
     "morgan": "^1",
     "multer": "^2.1.1",
+    "node-appwrite": "^25.2.0",
+    "openai": "^6.39.1",
     "razorpay": "^2.9.6",
     "winston": "^3",
     "zod": "^3"

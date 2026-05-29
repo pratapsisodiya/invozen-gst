@@ -16,6 +16,7 @@
     "groq-sdk": "^1.1.2",
     "html2canvas": "^1.4.1",
     "immer": "^11.1.4",
+    "invozen-gst": "file:..",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.14.0",
     "next": "16.2.4",

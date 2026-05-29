@@ -24,9 +24,11 @@ import { SUPPORTED_CURRENCIES } from '@/lib/currency/currencyUtils'
 import { GST_RATES } from '@/lib/gst/constants'
 import { CESS_RATES } from '@/lib/gst/cessRates'
 import { TDS_SECTIONS } from '@/lib/gst/tdsSections'
-import { Plus, Trash2, Search, Send, Save, AlertTriangle, Info } from 'lucide-react'
+import { Plus, Trash2, Search, Send, Save, AlertTriangle, Info, Sparkles, Loader2 } from 'lucide-react'
 import { HSNSuggestButton } from '../ai/HSNSuggestButton'
 import { AIAutofillButton } from '../ai/AIAutofillButton'
+
+const AI_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'
 
 interface InvoiceFormClientProps {
   editId?: string
@@ -71,6 +73,9 @@ export function InvoiceFormClient({ editId }: InvoiceFormClientProps) {
   const [showSendModal, setShowSendModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [validationWarnings, setValidationWarnings] = useState<string[]>([])
+  const [showAIDraftModal, setShowAIDraftModal] = useState(false)
+  const [aiDraftInput, setAiDraftInput] = useState('')
+  const [aiDraftLoading, setAiDraftLoading] = useState(false)
   const [showWarnings, setShowWarnings] = useState(false)
   const [pendingSaveStatus, setPendingSaveStatus] = useState<'draft' | 'sent' | null>(null)
   const [currency, setCurrency] = useState(editingInvoice?.currency ?? 'INR')
@@ -221,6 +226,39 @@ export function InvoiceFormClient({ editId }: InvoiceFormClientProps) {
     else router.push('/invoices')
   }
 
+  const handleAIDraft = async () => {
+    if (!aiDraftInput.trim() || aiDraftLoading) return
+    setAiDraftLoading(true)
+    try {
+      const res = await fetch(`${AI_API_BASE}/ai/invoice-assistant`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ description: aiDraftInput }),
+      })
+      const data = await res.json()
+      if (data.data?.lineItems?.length) {
+        const { lineItems: aiItems } = data.data as { lineItems: { description: string; hsn: string; quantity: number; unit: string; rate: number; gstRate: number }[] }
+        const newItems = aiItems.map((ai) => {
+          const base: LineItem = { ...emptyLineItem(supplyType), description: ai.description, hsnSac: ai.hsn, quantity: ai.quantity, unit: ai.unit, rate: ai.rate, gstRate: ai.gstRate }
+          const calc = calculateLineItem(base.quantity, base.rate, 0, base.gstRate, supplyType, 0)
+          return { ...base, ...calc }
+        })
+        setLineItems(newItems)
+        if (data.data.notes) setNotes(data.data.notes)
+        addToast({ type: 'success', title: 'AI drafted invoice items', message: `${newItems.length} line items added` })
+        setShowAIDraftModal(false)
+        setAiDraftInput('')
+      } else {
+        addToast({ type: 'error', title: 'AI could not parse that description. Try being more specific.' })
+      }
+    } catch {
+      addToast({ type: 'error', title: 'AI Draft failed', message: 'Is the backend running?' })
+    } finally {
+      setAiDraftLoading(false)
+    }
+  }
+
   const handleSave = async (status: 'draft' | 'sent') => {
     if (!selectedCustomer) { addToast({ type: 'error', title: 'Select a customer first' }); return }
     setPendingSaveStatus(status)
@@ -261,6 +299,40 @@ export function InvoiceFormClient({ editId }: InvoiceFormClientProps) {
 
   return (
     <div className="flex flex-col flex-1">
+      {/* AI Draft modal */}
+      <Modal open={showAIDraftModal} onClose={() => { setShowAIDraftModal(false); setAiDraftInput('') }} title="AI Invoice Draft" size="sm">
+        <div className="p-5 flex flex-col gap-4">
+          <p className="text-sm" style={{ color: 'var(--text-2)' }}>
+            Describe your invoice in plain English and AI will fill in the line items, HSN codes, and GST rates.
+          </p>
+          <textarea
+            value={aiDraftInput}
+            onChange={(e) => setAiDraftInput(e.target.value)}
+            rows={4}
+            placeholder="e.g. Bill Acme Corp for 5 hours React consulting at ₹3000/hr and 1 year SaaS subscription at ₹12000"
+            className="w-full px-3 py-2 rounded-lg text-sm border outline-none resize-none"
+            style={{ borderColor: 'var(--border)', color: 'var(--text)', background: 'var(--bg-warm)' }}
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => void handleAIDraft()}
+              disabled={!aiDraftInput.trim() || aiDraftLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {aiDraftLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {aiDraftLoading ? 'Generating...' : 'Generate Items'}
+            </button>
+            <button
+              onClick={() => { setShowAIDraftModal(false); setAiDraftInput('') }}
+              className="px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
+              style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Draft recovery modal */}
       <Modal open={showDraftRecovery} onClose={() => { setShowDraftRecovery(false); clearDraft() }} title="Recover Unsaved Draft?" size="sm">
         <div className="p-5 flex flex-col gap-4">
@@ -309,6 +381,11 @@ export function InvoiceFormClient({ editId }: InvoiceFormClientProps) {
                 Saved {savedSecondsAgo}s ago
               </span>
             )}
+            <button onClick={() => setShowAIDraftModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-sm font-medium transition-colors hover:bg-brand-50 text-brand-700 border-brand-200"
+              title="AI Draft — describe your invoice in plain English">
+              <Sparkles className="w-3.5 h-3.5" /> <span className="hidden sm:inline">AI Draft</span>
+            </button>
             <button onClick={() => void handleSave('draft')} disabled={saving}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-sm font-medium transition-colors hover:bg-ink-50 disabled:opacity-50"
               style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
@@ -449,7 +526,7 @@ export function InvoiceFormClient({ editId }: InvoiceFormClientProps) {
                   />
                 )}
               </div>
-              <div className="overflow-x-auto">
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
@@ -574,6 +651,149 @@ export function InvoiceFormClient({ editId }: InvoiceFormClientProps) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile stacked card-based form */}
+              <div className="md:hidden flex flex-col divide-y" style={{ borderColor: 'var(--border-soft)' }}>
+                {lineItems.map((li, idx) => (
+                  <div key={li.id} className="p-4 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Item #{idx + 1}</span>
+                      <button onClick={() => removeLineItem(li.id)} disabled={lineItems.length === 1}
+                        className="p-1 rounded hover:bg-err-50 text-err-600 disabled:opacity-20 transition-colors" aria-label="Remove item">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Item Description Search */}
+                    <div>
+                      <label className="text-[11px] font-medium mb-1 block" style={{ color: 'var(--text-2)' }}>Description *</label>
+                      <div className="relative">
+                        <input
+                          value={itemSearch[li.id] !== undefined ? itemSearch[li.id] : li.description}
+                          onChange={(e) => {
+                            setItemSearch((prev) => ({ ...prev, [li.id]: e.target.value }))
+                            setShowItemDropdown((prev) => ({ ...prev, [li.id]: true }))
+                          }}
+                          placeholder={`Item name/description`}
+                          className="w-full h-9 rounded-md border px-2.5 text-xs outline-none focus:ring-1 focus:ring-brand-600/20 focus:border-brand-600"
+                          style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
+                        />
+                        {showItemDropdown[li.id] && itemSearch[li.id] && (
+                          <div className="absolute top-full left-0 right-0 z-30 rounded-xl mt-1 overflow-hidden"
+                            style={{ background: 'white', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)' }}>
+                            {searchItems(itemSearch[li.id] || '').slice(0, 6).map((item) => (
+                              <button key={item.id} onClick={() => {
+                                setLineItems((prev) => prev.map((l) => {
+                                  if (l.id !== li.id) return l
+                                  const calc = calculateLineItem(l.quantity, item.defaultRate, 0, item.defaultGstRate, supplyType)
+                                  return { ...l, itemId: item.id, description: item.name, hsnSac: item.hsnCode || item.sacCode || '', rate: item.defaultRate, gstRate: item.defaultGstRate, unit: item.unit, discountPercent: 0, ...calc }
+                                }))
+                                setItemSearch((prev) => ({ ...prev, [li.id]: '' }))
+                                setShowItemDropdown((prev) => ({ ...prev, [li.id]: false }))
+                              }} className="flex flex-col w-full px-3 py-2 hover:bg-ink-50 text-left">
+                                <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>{item.name}</span>
+                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{item.hsnCode || item.sacCode} · GST {item.defaultGstRate}%</span>
+                              </button>
+                            ))}
+                            {searchItems(itemSearch[li.id] || '').length === 0 && (
+                              <button onClick={() => { setShowItemDropdown((prev) => ({ ...prev, [li.id]: false })); router.push('/items/new') }}
+                                className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-brand-600 hover:bg-brand-50 border-t text-left"
+                                style={{ borderColor: 'var(--border)' }}>
+                                <Plus className="w-3.5 h-3.5" /> Add new item →
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* HSN/SAC */}
+                    <div>
+                      <label className="text-[11px] font-medium mb-1 block" style={{ color: 'var(--text-2)' }}>HSN/SAC</label>
+                      <div className="flex items-center gap-1">
+                        <input value={li.hsnSac} onChange={(e) => updateLineItem(li.id, 'hsnSac', e.target.value)}
+                          placeholder="HSN/SAC" className="flex-1 h-9 rounded-md border px-2.5 text-xs outline-none focus:ring-1 focus:ring-brand-600/20"
+                          style={{ borderColor: 'var(--border)', color: 'var(--text)' }} />
+                        <HSNSuggestButton
+                          description={li.description}
+                          itemType={li.itemId ? 'product' : 'service'}
+                          onApply={(code, rate) => { updateLineItem(li.id, 'hsnSac', code); updateLineItem(li.id, 'gstRate', rate) }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Grid for Qty, Unit, Rate, Disc */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-medium mb-1 block" style={{ color: 'var(--text-2)' }}>Qty</label>
+                        <input type="number" min="0.01" step="0.01" value={li.quantity}
+                          onChange={(e) => updateLineItem(li.id, 'quantity', parseFloat(e.target.value) || 0)}
+                          className="w-full h-9 rounded-md border px-2.5 text-xs text-right tabular-nums outline-none focus:ring-1 focus:ring-brand-600/20"
+                          style={{ borderColor: 'var(--border)', color: 'var(--text)' }} />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium mb-1 block" style={{ color: 'var(--text-2)' }}>Unit</label>
+                        <select value={li.unit} onChange={(e) => updateLineItem(li.id, 'unit', e.target.value)}
+                          className="w-full h-9 rounded-md border px-2 text-xs outline-none bg-white"
+                          style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+                          {['NOS', 'KGS', 'MTR', 'LTR', 'HRS', 'DAYS', 'PCS', 'BOX'].map((u) => (
+                            <option key={u} value={u}>{u}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium mb-1 block" style={{ color: 'var(--text-2)' }}>Rate (₹)</label>
+                        <input type="number" min="0" step="0.01" value={li.rate}
+                          onChange={(e) => updateLineItem(li.id, 'rate', parseFloat(e.target.value) || 0)}
+                          className="w-full h-9 rounded-md border px-2.5 text-xs text-right tabular-nums outline-none focus:ring-1 focus:ring-brand-600/20"
+                          style={{ borderColor: 'var(--border)', color: 'var(--text)' }} />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium mb-1 block" style={{ color: 'var(--text-2)' }}>Disc %</label>
+                        <input type="number" min="0" max="100" step="0.5" value={li.discountPercent}
+                          onChange={(e) => { const v = parseFloat(e.target.value); updateLineItem(li.id, 'discountPercent', isNaN(v) ? 0 : v) }}
+                          className="w-full h-9 rounded-md border px-2.5 text-xs text-right tabular-nums outline-none focus:ring-1 focus:ring-brand-600/20"
+                          style={{ borderColor: 'var(--border)', color: 'var(--text)' }} />
+                      </div>
+                    </div>
+
+                    {/* GST & Cess */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-medium mb-1 block" style={{ color: 'var(--text-2)' }}>GST Rate</label>
+                        <select value={li.gstRate} onChange={(e) => updateLineItem(li.id, 'gstRate', Number(e.target.value))}
+                          disabled={invoiceType === 'bill_of_supply'}
+                          className="w-full h-9 rounded-md border px-2 text-xs outline-none bg-white disabled:opacity-50"
+                          style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+                          {GST_RATES.map((r) => <option key={r} value={r}>{r}%</option>)}
+                        </select>
+                      </div>
+                      {li.gstRate === 28 ? (
+                        <div>
+                          <label className="text-[11px] font-medium mb-1 block" style={{ color: 'var(--text-2)' }}>Cess Rate</label>
+                          <select value={li.cessRate ?? 0} onChange={(e) => updateLineItem(li.id, 'cessRate', Number(e.target.value))}
+                            className="w-full h-9 rounded-md border px-2 text-xs outline-none bg-white"
+                            style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+                            {CESS_RATES.map((r) => <option key={r} value={r}>{r}%</option>)}
+                          </select>
+                        </div>
+                      ) : lineItems.some((x) => x.gstRate === 28) ? (
+                        <div className="flex flex-col justify-end pb-2">
+                          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Cess: —</span>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Amount */}
+                    <div className="flex justify-between items-center bg-brand-50/40 p-2.5 rounded-lg border border-brand-100">
+                      <span className="text-xs font-semibold text-brand-800">Item Total</span>
+                      <span className="text-sm font-bold text-brand-900 tabular-nums">
+                        ₹{li.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="px-5 py-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
                 <button onClick={addLineItem}

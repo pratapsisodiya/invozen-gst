@@ -1,6 +1,7 @@
 import type { DeliveryChallan } from '@/types/challan'
 import type { BusinessProfile } from '@/types/business'
 import { CHALLAN_TYPE_LABELS } from '@/types/challan'
+import { appendPdfAiAssistSection } from '@/lib/pdf/pdfAiAssist'
 
 export async function downloadChallanPdf(challan: DeliveryChallan, profile: BusinessProfile): Promise<void> {
   const { jsPDF } = await import('jspdf')
@@ -185,6 +186,22 @@ export async function downloadChallanPdf(challan: DeliveryChallan, profile: Busi
   doc.text('This is a Delivery Challan issued under Rule 55 of CGST Rules, 2017. This is NOT a Tax Invoice.', pageW / 2, 288, { align: 'center' })
   doc.setFont('helvetica', 'normal')
   doc.text('No tax is charged on this document. GST will be charged separately on the final Tax Invoice.', pageW / 2, 293, { align: 'center' })
+
+  await appendPdfAiAssistSection(doc, y + 2, {
+    documentType: 'Delivery Challan',
+    businessName: profile.businessName,
+    summary: `Challan ${challan.challanNumber} for ${challan.toName}. The dispatch value is Rs. ${challan.totalValue.toLocaleString('en-IN')} and the challan type is ${CHALLAN_TYPE_LABELS[challan.challanType]}.`,
+    highlights: [
+      `Transport mode: ${challan.transportMode || 'Not specified'}`,
+      `E-way bill: ${challan.ewayBillNumber || 'Not linked'}`,
+      `Expected return: ${challan.expectedReturnDate ? new Date(challan.expectedReturnDate).toLocaleDateString('en-IN') : 'Not set'}`,
+    ],
+    metrics: [
+      { label: 'Total Value', value: `Rs. ${challan.totalValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` },
+      { label: 'Items', value: String(challan.lineItems.length) },
+      { label: 'Status', value: challan.status },
+    ],
+  })
 
   doc.save(`${challan.challanNumber}.pdf`)
 }

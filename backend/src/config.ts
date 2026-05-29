@@ -28,5 +28,14 @@ export const config = {
   RAZORPAY_KEY_SECRET: process.env['RAZORPAY_KEY_SECRET'] ?? '',
   RAZORPAY_WEBHOOK_SECRET: process.env['RAZORPAY_WEBHOOK_SECRET'] ?? '',
   // AI Copilot
-  GROQ_API_KEY: process.env['GROQ_API_KEY'] ?? '',
+  GROQ_API_KEY: process.env.GROQ_API_KEY ?? '',
+  AZURE_OPENAI_ENDPOINT: process.env.AZURE_OPENAI_ENDPOINT ?? '',
+  AZURE_OPENAI_API_KEY: process.env.AZURE_OPENAI_API_KEY ?? '',
+  AZURE_OPENAI_API_VERSION: process.env.AZURE_OPENAI_API_VERSION ?? '',
+  AZURE_DEPLOYMENT_NAME: process.env.AZURE_DEPLOYMENT_NAME ?? '',
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? '',
+  // Appwrite (Email & Messaging)
+  APPWRITE_ENDPOINT: process.env.APPWRITE_ENDPOINT ?? 'https://cloud.appwrite.io/v1',
+  APPWRITE_PROJECT_ID: process.env.APPWRITE_PROJECT_ID ?? '',
+  APPWRITE_API_KEY: process.env.APPWRITE_API_KEY ?? '',
 }

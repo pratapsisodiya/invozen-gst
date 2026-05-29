@@ -14,7 +14,9 @@ import { UserManagement } from './UserManagement'
 import { BranchManagement } from './BranchManagement'
 import { GST_RATES, STATE_CODES } from '@/lib/gst/constants'
 import { downloadCSV, downloadJSON } from '@/lib/export/excelExport'
+import { downloadTaxLedgerPdf } from '@/lib/pdf/taxLedgerPdf'
 import { calculateGSTR1Summary } from '@/lib/gst/gstr1'
+import { UploadCloud, Trash2, Image, PenTool, Loader2 } from 'lucide-react'
 
 const STATE_OPTIONS = Object.entries(STATE_CODES).map(([code, name]) => ({ value: code, label: name }))
 
@@ -38,6 +40,102 @@ export function SettingsClient() {
   const { purchases } = usePurchaseStore()
   const [activeTab, setActiveTab] = useState('profile')
   const [saving, setSaving] = useState(false)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const [sigUploading, setSigUploading] = useState(false)
+
+  const getErrorMessage = (err: unknown) => err instanceof Error ? err.message : 'Something went wrong'
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoUploading(true)
+    const formData = new FormData()
+    formData.append('logo', file)
+
+    try {
+      const res = await fetch('/api/business/upload-logo', {
+        method: 'POST',
+        body: formData,
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Upload failed' }))
+        throw new Error(data.error || 'Failed to upload logo')
+      }
+      const data = await res.json()
+      await updateProfile({ logoUrl: data.logoUrl })
+      addToast({ type: 'success', title: 'Logo updated successfully' })
+    } catch (err: unknown) {
+      addToast({ type: 'error', title: 'Upload failed', message: getErrorMessage(err) })
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  const handleLogoDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete the business logo?')) return
+    setLogoUploading(true)
+    try {
+      const res = await fetch('/api/business/upload-logo', {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Delete failed' }))
+        throw new Error(data.error || 'Failed to delete logo')
+      }
+      await updateProfile({ logoUrl: null })
+      addToast({ type: 'success', title: 'Logo removed' })
+    } catch (err: unknown) {
+      addToast({ type: 'error', title: 'Deletion failed', message: getErrorMessage(err) })
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setSigUploading(true)
+    const formData = new FormData()
+    formData.append('signature', file)
+
+    try {
+      const res = await fetch('/api/business/upload-signature', {
+        method: 'POST',
+        body: formData,
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Upload failed' }))
+        throw new Error(data.error || 'Failed to upload signature')
+      }
+      const data = await res.json()
+      await updateProfile({ signatureUrl: data.signatureUrl })
+      addToast({ type: 'success', title: 'Signature updated successfully' })
+    } catch (err: unknown) {
+      addToast({ type: 'error', title: 'Upload failed', message: getErrorMessage(err) })
+    } finally {
+      setSigUploading(false)
+    }
+  }
+
+  const handleSignatureDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete the signature?')) return
+    setSigUploading(true)
+    try {
+      const res = await fetch('/api/business/upload-signature', {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Delete failed' }))
+        throw new Error(data.error || 'Failed to delete signature')
+      }
+      await updateProfile({ signatureUrl: null })
+      addToast({ type: 'success', title: 'Signature removed' })
+    } catch (err: unknown) {
+      addToast({ type: 'error', title: 'Deletion failed', message: getErrorMessage(err) })
+    } finally {
+      setSigUploading(false)
+    }
+  }
 
   const save = (fn: () => void) => {
     setSaving(true)
@@ -48,7 +146,7 @@ export function SettingsClient() {
     }, 500)
   }
 
-  const handleExport = (type: string) => {
+  const handleExport = async (type: string) => {
     const now = new Date()
     const month = now.getMonth() + 1
     const year = now.getFullYear()
@@ -122,6 +220,11 @@ export function SettingsClient() {
         addToast({ type: 'success', title: 'GSTR-3B data exported' })
         break
       }
+      case 'taxledger': {
+        await downloadTaxLedgerPdf(invoices, purchases, profile, { month, year })
+        addToast({ type: 'success', title: 'Tax ledger exported', message: 'PDF download started' })
+        break
+      }
       default:
         addToast({ type: 'info', title: 'Export coming soon' })
     }
@@ -147,6 +250,84 @@ export function SettingsClient() {
             {/* Business Profile */}
             {activeTab === 'profile' && (
               <div className="p-5 flex flex-col gap-5">
+                {/* Logo & Signature Branding */}
+                <div className="flex flex-col gap-4 pb-5 border-b" style={{ borderColor: 'var(--border)' }}>
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Business Branding</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Logo upload box */}
+                    <div className="flex flex-col gap-2 p-4 rounded-xl border border-dashed flex-1 animate-fade-in" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}>
+                      <label className="text-[13px] font-medium" style={{ color: 'var(--text-2)' }}>Business Logo</label>
+                      <div className="relative h-32 flex items-center justify-center rounded-lg border bg-white overflow-hidden group" style={{ borderColor: 'var(--border-soft)' }}>
+                        {logoUploading ? (
+                          <div className="flex flex-col items-center gap-1.5 text-xs text-brand-600">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                            <span>Uploading logo...</span>
+                          </div>
+                        ) : profile.logoUrl ? (
+                          <>
+                            <img src={profile.logoUrl} alt="Logo" className="max-h-24 max-w-[90%] object-contain" />
+                            <div className="absolute inset-0 bg-ink-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-all">
+                              <label htmlFor="logo-upload" className="p-2 bg-white rounded-lg text-ink-800 hover:bg-ink-100 cursor-pointer shadow-sm">
+                                <UploadCloud className="w-4 h-4" />
+                              </label>
+                              <button onClick={handleLogoDelete} className="p-2 bg-white rounded-lg text-err-600 hover:bg-err-50 shadow-sm">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <label htmlFor="logo-upload" className="flex flex-col items-center gap-2 text-xs text-ink-500 hover:text-brand-600 cursor-pointer text-center p-4">
+                            <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
+                              <Image className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <span className="font-semibold text-brand-600">Click to upload</span> logo
+                              <p className="text-[10px] text-ink-400 mt-0.5">PNG, JPG, or SVG (Max 5MB)</p>
+                            </div>
+                          </label>
+                        )}
+                        <input id="logo-upload" type="file" accept="image/png, image/jpeg, image/jpg, image/svg+xml" onChange={handleLogoUpload} className="hidden" disabled={logoUploading} />
+                      </div>
+                    </div>
+
+                    {/* Signature upload box */}
+                    <div className="flex flex-col gap-2 p-4 rounded-xl border border-dashed flex-1 animate-fade-in" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}>
+                      <label className="text-[13px] font-medium" style={{ color: 'var(--text-2)' }}>Authorized Signature</label>
+                      <div className="relative h-32 flex items-center justify-center rounded-lg border bg-white overflow-hidden group" style={{ borderColor: 'var(--border-soft)' }}>
+                        {sigUploading ? (
+                          <div className="flex flex-col items-center gap-1.5 text-xs text-brand-600">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                            <span>Uploading signature...</span>
+                          </div>
+                        ) : profile.signatureUrl ? (
+                          <>
+                            <img src={profile.signatureUrl} alt="Signature" className="max-h-24 max-w-[90%] object-contain" />
+                            <div className="absolute inset-0 bg-ink-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-all">
+                              <label htmlFor="signature-upload" className="p-2 bg-white rounded-lg text-ink-800 hover:bg-ink-100 cursor-pointer shadow-sm">
+                                <UploadCloud className="w-4 h-4" />
+                              </label>
+                              <button onClick={handleSignatureDelete} className="p-2 bg-white rounded-lg text-err-600 hover:bg-err-50 shadow-sm">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <label htmlFor="signature-upload" className="flex flex-col items-center gap-2 text-xs text-ink-500 hover:text-brand-600 cursor-pointer text-center p-4">
+                            <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
+                              <PenTool className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <span className="font-semibold text-brand-600">Click to upload</span> signature
+                              <p className="text-[10px] text-ink-400 mt-0.5">PNG, JPG (Max 5MB)</p>
+                            </div>
+                          </label>
+                        )}
+                        <input id="signature-upload" type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleSignatureUpload} className="hidden" disabled={sigUploading} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-4">
                   <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Business Information</h3>
                   <div className="grid grid-cols-2 gap-3">
@@ -409,13 +590,13 @@ export function SettingsClient() {
                     { key: 'payments', label: 'Payment History (CSV)', desc: `${payments.length} records` },
                     { key: 'gstr1', label: 'GSTR-1 JSON', desc: 'Current month — GST portal upload' },
                     { key: 'gstr3b', label: 'GSTR-3B Purchases (CSV)', desc: 'Purchase register for ITC' },
-                    { key: 'taxledger', label: 'Tax Ledger (PDF)', desc: 'Coming soon' },
+                    { key: 'taxledger', label: 'Tax Ledger (PDF)', desc: 'Sales, purchases, ITC, and payable summary' },
                   ].map((exp) => (
                     <button key={exp.key}
                       onClick={() => handleExport(exp.key)}
                       className="flex items-center gap-3 p-4 rounded-xl text-left hover:bg-ink-50 transition-colors"
                       style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)' }}>
-                      <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center text-brand-600 text-xs font-bold flex-shrink-0">↓</div>
+                      <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center text-brand-600 text-xs font-bold shrink-0">↓</div>
                       <div>
                         <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{exp.label}</p>
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{exp.desc}</p>

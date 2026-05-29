@@ -9,11 +9,17 @@ import {
   Calendar, GitMerge, TrendingUp, Boxes, Activity, BookOpen,
   Receipt, Landmark, Truck, FileCheck, Building2, ClipboardCheck,
   AlertOctagon, ScanLine, GitBranch, ArrowUpDown, Wallet,
-  ShieldCheck, BarChart, Download,
+  ShieldCheck, BarChart, Download, Sparkles,
 } from 'lucide-react'
 import { useUIStore } from '@/lib/store/uiStore'
 
 const NAV_GROUPS = [
+  {
+    label: 'AI',
+    items: [
+      { href: '/ai-copilot', icon: Sparkles, label: 'AI Copilot' },
+    ],
+  },
   {
     label: 'Core',
     items: [
@@ -53,7 +59,6 @@ const NAV_GROUPS = [
       { href: '/purchases', icon: ShoppingCart, label: 'Purchases' },
       { href: '/vendors', icon: Store, label: 'Vendors' },
       { href: '/itc-reconciliation', icon: GitMerge, label: 'ITC Recon' },
-      { href: '/compliance', icon: Calendar, label: 'Compliance' },
       { href: '/filing-workflow', icon: FileCheck, label: 'Filing Workflow' },
       { href: '/credit-notes', icon: FileMinus, label: 'Credit Notes' },
       { href: '/debit-notes', icon: FilePlus, label: 'Debit Notes' },

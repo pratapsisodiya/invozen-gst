@@ -1,6 +1,7 @@
 import type { DebitNote } from '@/types/creditNote'
 import type { BusinessProfile } from '@/types/business'
 import { DEBIT_NOTE_REASON_LABELS } from '@/types/creditNote'
+import { appendPdfAiAssistSection } from '@/lib/pdf/pdfAiAssist'
 
 export async function downloadDebitNotePdf(
   dn: DebitNote,
@@ -164,6 +165,22 @@ export async function downloadDebitNotePdf(
     doc.setTextColor(80, 80, 80)
     doc.text(doc.splitTextToSize(dn.notes, contentW), margin, y + 5)
   }
+
+  await appendPdfAiAssistSection(doc, y, {
+    documentType: 'Debit Note',
+    businessName: profile.businessName,
+    summary: `Debit note ${dn.debitNoteNumber} for ${dn.vendorSnapshot.name}. The adjustment total is Rs. ${dn.grandTotal.toLocaleString('en-IN')} and it is linked to purchase ${dn.linkedPurchaseNumber || 'N/A'}.`,
+    highlights: [
+      `Reason: ${DEBIT_NOTE_REASON_LABELS[dn.reason]}`,
+      `Status: ${dn.status}`,
+      `GST impact: Rs. ${(dn.cgstTotal + dn.sgstTotal + dn.igstTotal).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+    ],
+    metrics: [
+      { label: 'Note Total', value: `Rs. ${dn.grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` },
+      { label: 'Linked Purchase', value: dn.linkedPurchaseNumber || 'N/A' },
+      { label: 'Reason', value: DEBIT_NOTE_REASON_LABELS[dn.reason] },
+    ],
+  })
 
   // Footer
   doc.setFillColor(13, 148, 136)

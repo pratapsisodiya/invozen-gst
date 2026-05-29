@@ -1,12 +1,10 @@
-// Module-level singleton so Zustand stores (non-React context) can get the Clerk token.
-// AppShell registers the getter once on mount; all stores read from it.
+let tokenGetter: (() => Promise<string | null>) | null = null
 
-let _getToken: (() => Promise<string | null>) | null = null
-
-export function registerTokenGetter(fn: () => Promise<string | null>) {
-  _getToken = fn
+export function registerTokenGetter(getter: () => Promise<string | null>) {
+  tokenGetter = getter
 }
 
 export async function getBearerToken(): Promise<string | null> {
-  return _getToken ? _getToken() : null
+  if (!tokenGetter) return null
+  return tokenGetter()
 }

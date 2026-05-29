@@ -1,11 +1,12 @@
 import { Router } from 'express'
-import { requireAuth } from '../middleware/auth.js'
+import { requireAuth, clerkClient } from '../middleware/auth.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
 import { toJson } from '../lib/prisma.js'
 import { ok, created, notFound, badRequest, forbidden } from '../lib/response.js'
 import { generateId } from '../lib/id.js'
 import { z } from 'zod'
+import { config } from '../config.js'
 
 const router = Router()
 router.use(requireAuth)
@@ -79,47 +80,43 @@ export function hasPermission(role: string, permission: string): boolean {
 // GET /users - List all team members
 router.get('/', async (req, res, next) => {
   try {
-    const userId = (req as unknown as AuthRequest).userId
-
-    // Get current user's business profile to determine role
-    const business = await prisma.businessProfile.findUnique({ where: { userId } })
-    if (!business) {
-      return forbidden(res, 'Business profile not found')
-    }
-
-    const businessData = business.data as any
-    const currentUserRole = businessData.role || 'owner' // First user is owner
+    const authReq = req as unknown as AuthRequest
+    const userId = authReq.userId // Owner ID
+    const currentUserRole = authReq.role
 
     // Check permission
     if (!hasPermission(currentUserRole, 'user:view')) {
       return forbidden(res, 'Insufficient permissions to view users')
     }
 
-    // In a real multi-tenant system, you'd query a Team or Workspace table
-    // For now, return all business profiles (simplified for demo)
-    const profiles = await prisma.businessProfile.findMany({
-      select: {
-        id: true,
-        userId: true,
-        data: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
+    // Fetch active users from Clerk
+    const allUsers = await clerkClient.users.getUserList()
+    // Fetch pending invitations from Clerk
+    const allInvitations = await clerkClient.invitations.getInvitationList()
 
-    const users = profiles.map(p => {
-      const data = p.data as any
-      return {
-        id: p.userId,
-        email: data.email || '',
-        name: data.businessName || data.name || 'Unknown',
-        role: data.role || 'owner',
-        status: data.status || 'active',
-        createdAt: p.createdAt,
-      }
-    })
+    const activeUsers = allUsers.data
+      .filter((u) => u.id === userId || (u.publicMetadata as any).ownerId === userId)
+      .map((u) => ({
+        id: u.id,
+        email: u.emailAddresses[0]?.emailAddress || '',
+        name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown User',
+        role: (u.publicMetadata as any).role || 'owner',
+        status: 'active',
+        createdAt: new Date(u.createdAt).toISOString(),
+      }))
 
-    ok(res, users)
+    const pendingInvites = allInvitations.data
+      .filter((i) => (i.publicMetadata as any).ownerId === userId && i.status === 'pending')
+      .map((i) => ({
+        id: i.id,
+        email: i.emailAddress,
+        name: (i.publicMetadata as any).name || 'Invited User',
+        role: (i.publicMetadata as any).role || 'viewer',
+        status: 'pending',
+        createdAt: new Date(i.createdAt).toISOString(),
+      }))
+
+    ok(res, [...activeUsers, ...pendingInvites])
   } catch (err) {
     next(err)
   }
@@ -128,53 +125,58 @@ router.get('/', async (req, res, next) => {
 // POST /users/invite - Invite a team member
 router.post('/invite', async (req, res, next) => {
   try {
-    const userId = (req as unknown as AuthRequest).userId
+    const authReq = req as unknown as AuthRequest
+    const userId = authReq.userId // Owner ID
+    const clerkUserId = authReq.clerkUserId // Actual logged-in user
+    const currentUserRole = authReq.role
 
     // Validate input
     const validated = inviteUserSchema.parse(req.body)
-
-    // Get current user's role
-    const business = await prisma.businessProfile.findUnique({ where: { userId } })
-    if (!business) {
-      return forbidden(res, 'Business profile not found')
-    }
-
-    const businessData = business.data as any
-    const currentUserRole = businessData.role || 'owner'
 
     // Check permission
     if (!hasPermission(currentUserRole, 'user:invite')) {
       return forbidden(res, 'Insufficient permissions to invite users')
     }
 
-    // Create invitation record in notifications
-    const invitation = await prisma.notification.create({
+    // Get current user's business profile name
+    const business = await prisma.businessProfile.findUnique({ where: { userId } })
+    const businessName = business ? (business.data as any).businessName : 'the team'
+
+    // Call Clerk to create invitation
+    const invitation = await clerkClient.invitations.createInvitation({
+      emailAddress: validated.email,
+      redirectUrl: `${config.FRONTEND_URL}/signup`,
+      publicMetadata: {
+        role: validated.role,
+        ownerId: userId,
+        name: validated.name || '',
+        businessName,
+      },
+      ignoreExisting: true,
+    })
+
+    // Create audit log
+    await prisma.auditEntry.create({
       data: {
         id: generateId(),
-        userId, // Inviter
-        type: 'user_invitation',
-        isRead: false,
+        userId: clerkUserId,
+        entity: 'user',
+        entityId: invitation.id,
+        action: 'invite',
         data: toJson({
           email: validated.email,
           role: validated.role,
           name: validated.name,
-          invitedBy: userId,
-          invitedAt: new Date().toISOString(),
-          status: 'pending',
-          message: `You've been invited to join ${businessData.businessName || 'the team'} as ${validated.role}`,
         }),
       },
     })
-
-    // In production, send email invitation here
-    // await sendInvitationEmail(validated.email, invitation.id)
 
     created(res, {
       invitationId: invitation.id,
       email: validated.email,
       role: validated.role,
       status: 'pending',
-      message: 'Invitation sent successfully. User will receive an email.',
+      message: 'Invitation sent successfully via Clerk.',
     })
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -187,20 +189,14 @@ router.post('/invite', async (req, res, next) => {
 // PUT /users/:userId/role - Update user role
 router.put('/:targetUserId/role', async (req, res, next) => {
   try {
-    const userId = (req as unknown as AuthRequest).userId
+    const authReq = req as unknown as AuthRequest
+    const userId = authReq.userId // Owner ID
+    const clerkUserId = authReq.clerkUserId // Actual logged-in user
+    const currentUserRole = authReq.role
     const targetUserId = req.params.targetUserId
 
     // Validate input
     const validated = updateRoleSchema.parse(req.body)
-
-    // Get current user's role
-    const business = await prisma.businessProfile.findUnique({ where: { userId } })
-    if (!business) {
-      return forbidden(res, 'Business profile not found')
-    }
-
-    const businessData = business.data as any
-    const currentUserRole = businessData.role || 'owner'
 
     // Check permission
     if (!hasPermission(currentUserRole, 'user:manage')) {
@@ -212,30 +208,34 @@ router.put('/:targetUserId/role', async (req, res, next) => {
       return forbidden(res, 'Only owners can assign owner role')
     }
 
-    // Get target user's profile
-    const targetBusiness = await prisma.businessProfile.findUnique({ where: { userId: targetUserId } })
-    if (!targetBusiness) {
-      return notFound(res, 'User not found')
+    // Get target user from Clerk
+    const targetUser = await clerkClient.users.getUser(targetUserId)
+    const targetMetadata = (targetUser.publicMetadata || {}) as { role?: string; ownerId?: string }
+
+    if (targetMetadata.ownerId !== userId) {
+      return forbidden(res, 'User does not belong to your team')
     }
 
-    const targetData = targetBusiness.data as any
-    const updated = { ...targetData, role: validated.role, updatedAt: new Date().toISOString() }
+    const oldRole = targetMetadata.role || 'viewer'
 
-    await prisma.businessProfile.update({
-      where: { userId: targetUserId },
-      data: { data: toJson(updated), updatedAt: new Date() },
+    // Update target user metadata in Clerk
+    await clerkClient.users.updateUserMetadata(targetUserId, {
+      publicMetadata: {
+        ...targetMetadata,
+        role: validated.role,
+      },
     })
 
     // Audit log
     await prisma.auditEntry.create({
       data: {
         id: generateId(),
-        userId,
+        userId: clerkUserId,
         entity: 'user',
         entityId: targetUserId,
         action: 'update_role',
         data: toJson({
-          oldRole: targetData.role || 'owner',
+          oldRole,
           newRole: validated.role,
         }),
       },
@@ -254,20 +254,14 @@ router.put('/:targetUserId/role', async (req, res, next) => {
   }
 })
 
-// DELETE /users/:userId - Remove team member
+// DELETE /users/:userId - Remove team member or revoke invitation
 router.delete('/:targetUserId', async (req, res, next) => {
   try {
-    const userId = (req as unknown as AuthRequest).userId
+    const authReq = req as unknown as AuthRequest
+    const userId = authReq.userId // Owner ID
+    const clerkUserId = authReq.clerkUserId // Actual logged-in user
+    const currentUserRole = authReq.role
     const targetUserId = req.params.targetUserId
-
-    // Get current user's role
-    const business = await prisma.businessProfile.findUnique({ where: { userId } })
-    if (!business) {
-      return forbidden(res, 'Business profile not found')
-    }
-
-    const businessData = business.data as any
-    const currentUserRole = businessData.role || 'owner'
 
     // Check permission
     if (!hasPermission(currentUserRole, 'user:remove')) {
@@ -275,42 +269,47 @@ router.delete('/:targetUserId', async (req, res, next) => {
     }
 
     // Cannot remove yourself
-    if (userId === targetUserId) {
+    if (clerkUserId === targetUserId) {
       return badRequest(res, 'Cannot remove yourself')
     }
 
-    // Get target user's profile
-    const targetBusiness = await prisma.businessProfile.findUnique({ where: { userId: targetUserId } })
-    if (!targetBusiness) {
-      return notFound(res, 'User not found')
+    let role = 'viewer'
+
+    if (targetUserId.startsWith('inv_')) {
+      // Revoke pending invitation
+      const invitation = await clerkClient.invitations.revokeInvitation(targetUserId)
+      role = (invitation.publicMetadata as any)?.role || 'viewer'
+    } else {
+      // Remove team member association by clearing Clerk metadata
+      const targetUser = await clerkClient.users.getUser(targetUserId)
+      const targetMetadata = (targetUser.publicMetadata || {}) as { role?: string; ownerId?: string }
+
+      if (targetMetadata.ownerId !== userId) {
+        return forbidden(res, 'User does not belong to your team')
+      }
+
+      role = targetMetadata.role || 'viewer'
+
+      // Clear metadata
+      await clerkClient.users.updateUserMetadata(targetUserId, {
+        publicMetadata: {
+          role: null,
+          ownerId: null,
+        },
+      })
     }
-
-    const targetData = targetBusiness.data as any
-
-    // Cannot remove owner
-    if (targetData.role === 'owner') {
-      return forbidden(res, 'Cannot remove owner')
-    }
-
-    // Mark user as inactive instead of deleting
-    const updated = { ...targetData, status: 'inactive', removedAt: new Date().toISOString() }
-
-    await prisma.businessProfile.update({
-      where: { userId: targetUserId },
-      data: { data: toJson(updated), updatedAt: new Date() },
-    })
 
     // Audit log
     await prisma.auditEntry.create({
       data: {
         id: generateId(),
-        userId,
+        userId: clerkUserId,
         entity: 'user',
         entityId: targetUserId,
         action: 'remove',
         data: toJson({
-          removedBy: userId,
-          role: targetData.role,
+          removedBy: clerkUserId,
+          role,
         }),
       },
     })

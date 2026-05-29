@@ -4,19 +4,34 @@ import { SignUp } from '@clerk/nextjs'
 
 export function SignupForm() {
   return (
-    <div className="rounded-2xl bg-white p-8" style={{ boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border)' }}>
-      <div className="flex items-center gap-2 mb-6">
-        <span className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white text-sm font-bold">G</span>
-        <span className="font-bold text-base" style={{ color: 'var(--text)' }}>Invozen GST</span>
-      </div>
-
+    <div className="flex flex-col items-center">
       <SignUp
         path="/signup"
         routing="path"
         signInUrl="/login"
         forceRedirectUrl="/onboarding"
         signInFallbackRedirectUrl="/dashboard"
+        appearance={{
+          elements: {
+            rootBox: "w-full",
+            card: "shadow-2xl border border-neutral-200/60 rounded-2xl w-full",
+            headerTitle: "text-2xl font-bold tracking-tight text-neutral-900",
+            headerSubtitle: "text-neutral-500",
+            socialButtonsBlockButton: "border-neutral-200 hover:bg-neutral-50 hover:border-neutral-300 transition-colors shadow-sm",
+            socialButtonsBlockButtonText: "font-medium text-neutral-700",
+            dividerLine: "bg-neutral-200",
+            dividerText: "text-neutral-400 font-medium",
+            formFieldLabel: "text-neutral-700 font-medium",
+            formFieldInput: "rounded-lg border-neutral-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm",
+            formButtonPrimary: "bg-neutral-900 hover:bg-neutral-800 text-white font-medium rounded-lg py-2.5 shadow-sm transition-all",
+            footerActionText: "text-neutral-500",
+            footerActionLink: "text-brand-600 hover:text-brand-700 font-semibold",
+          }
+        }}
       />
+      <p className="text-xs text-center mt-6 text-neutral-500 font-medium">
+        Secure and encrypted. Trusted by Indian businesses.
+      </p>
     </div>
   )
 }

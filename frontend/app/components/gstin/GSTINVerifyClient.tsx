@@ -73,8 +73,11 @@ export function GSTINVerifyClient() {
       <div className="flex-1 p-4 lg:p-6 max-w-2xl mx-auto w-full flex flex-col gap-6">
         {/* Main search */}
         <div className="rounded-xl bg-white p-6" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-          <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Verify GSTIN Format & Details</h3>
-          <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Validates format, extracts state, PAN, entity type, and checks Mod-36 checksum.</p>
+          <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>GSTIN Format Validator</h3>
+          <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Validates structure, extracts state, PAN, entity type, and verifies Mod-36 checksum.</p>
+          <p className="text-[11px] mb-4 px-2 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200 inline-flex gap-1 items-center">
+            ⚠️ This is a <strong>local format check only</strong> — it does not query the GST portal. A structurally valid GSTIN may still be cancelled or inactive.
+          </p>
           <div className="flex gap-2">
             <div className="relative flex-1">
               <input
@@ -105,7 +108,7 @@ export function GSTINVerifyClient() {
               <div>
                 <p className="font-mono text-lg font-bold" style={{ color: 'var(--text)' }}>{result.gstin}</p>
                 {result.isValid
-                  ? <p className="text-xs font-medium text-brand-600">Valid GSTIN format</p>
+                  ? <p className="text-xs font-medium text-brand-600">Format valid · local check</p>
                   : <p className="text-xs font-medium text-red-500">{result.error || 'Invalid GSTIN'}</p>}
               </div>
               {result.status && <Badge variant={statusColor as 'success' | 'error' | 'warning' | 'neutral'}>{result.status}</Badge>}

@@ -4,7 +4,6 @@ import { useInvoiceStore } from '@/lib/store/invoiceStore'
 import { useCustomerStore } from '@/lib/store/customerStore'
 import { usePurchaseStore } from '@/lib/store/purchaseStore'
 import { useBusinessStore } from '@/lib/store/businessStore'
-import { generateComplianceEvents } from '@/lib/gst/complianceCalendar'
 import { Sparkles, RefreshCw, AlertTriangle, TrendingUp, DollarSign, BarChart2, CheckCircle2, ChevronRight } from 'lucide-react'
 import type { BriefingItem } from '@/app/api/ai/daily-briefing/route'
 
@@ -24,7 +23,8 @@ const TYPE_STYLES = {
 }
 
 const CACHE_KEY = 'invozen-ai-briefing-cache'
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
+const CACHE_TTL_MS = 30 * 60 * 1000 // 30 minutes
+const STALE_WARN_MS = 15 * 60 * 1000 // show stale badge after 15 minutes
 
 function loadCache(): { items: BriefingItem[]; cachedAt: number } | null {
   try {
@@ -50,6 +50,7 @@ export function AIDailyBriefingCard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
   const [loadedAt, setLoadedAt] = useState<Date | null>(null)
+  const isStale = loadedAt ? Date.now() - loadedAt.getTime() > STALE_WARN_MS : false
 
   const fetchBriefing = useCallback(async (force = false) => {
     if (!force) {
@@ -78,9 +79,7 @@ export function AIDailyBriefingCard() {
     const gstCollected = monthInvoices.reduce((s, inv) => s + inv.cgstTotal + inv.sgstTotal + inv.igstTotal, 0)
     const overdue = invoices.filter((i) => i.status === 'overdue')
     const outstanding = invoices.filter((i) => i.status === 'sent' || i.status === 'overdue')
-
     const itc = getItcSummary()
-    const compliance = generateComplianceEvents('monthly', {})
 
     try {
       const res = await fetch('/api/ai/daily-briefing', {
@@ -100,7 +99,7 @@ export function AIDailyBriefingCard() {
           netPayable: Math.max(0, gstCollected - itc.claimed),
           totalInvoices: invoices.length,
           totalCustomers: customers.length,
-          nextFilingDate: compliance.nextDue,
+          nextFilingDate: null,
           recentInvoiceCount: monthInvoices.length,
           todayDate: now.toISOString().split('T')[0],
         }),
@@ -136,8 +135,9 @@ export function AIDailyBriefingCard() {
           <div>
             <p className="text-sm font-semibold text-white">AI Daily Briefing</p>
             {loadedAt && !loading && (
-              <p className="text-[10px] text-white/60">
+              <p className="text-[10px] text-white/60 flex items-center gap-1">
                 {loadedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                {isStale && <span className="px-1 py-0.5 rounded bg-amber-400/30 text-amber-200 text-[9px] font-semibold uppercase">stale</span>}
               </p>
             )}
           </div>

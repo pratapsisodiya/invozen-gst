@@ -1,28 +1,51 @@
 'use client'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
-import { LayoutDashboard, FileText, Plus, Users, MoreHorizontal } from 'lucide-react'
-import { useState } from 'react'
 import {
+  LayoutDashboard, FileText, Plus, Users, MoreHorizontal,
   BarChart2, CreditCard, Bell, Settings, Stamp, Briefcase, Package,
   ShoppingCart, Store, FileMinus, FilePlus, RefreshCw, ClipboardList,
+  GitMerge, TrendingUp, AlertOctagon, ScanLine, GitBranch, FileCheck,
+  ShieldCheck, BarChart, Building2, Activity, Download, Landmark,
+  BookOpen, Receipt, Truck, Wallet, ArrowUpDown, Sparkles,
 } from 'lucide-react'
 
 const MORE_ITEMS = [
+  { href: '/ai-copilot', icon: Sparkles, label: 'AI Copilot' },
   { href: '/reports/gstr1', icon: BarChart2, label: 'GST Reports' },
-  { href: '/payments', icon: CreditCard, label: 'Payments' },
-  { href: '/reminders', icon: Bell, label: 'Reminders' },
+  { href: '/reports/gstr9', icon: FileText, label: 'GSTR-9 Annual' },
+  { href: '/reports/gstr2b', icon: GitMerge, label: 'GSTR-2B Recon' },
+  { href: '/reports/financial', icon: TrendingUp, label: 'P&L / Cash Flow' },
+  { href: '/gst-notices', icon: AlertOctagon, label: 'GST Notices' },
+  { href: '/rcm-detective', icon: ScanLine, label: 'RCM Detective' },
+  { href: '/scheme-intelligence', icon: GitBranch, label: 'Scheme Advisor' },
   { href: '/einvoice', icon: Stamp, label: 'E-Invoice' },
+  { href: '/purchases', icon: ShoppingCart, label: 'Purchases' },
+  { href: '/vendors', icon: Store, label: 'Vendors' },
+  { href: '/itc-reconciliation', icon: GitMerge, label: 'ITC Recon' },
+  { href: '/filing-workflow', icon: FileCheck, label: 'Filing Workflow' },
+  { href: '/credit-notes', icon: FileMinus, label: 'Credit Notes' },
+  { href: '/debit-notes', icon: FilePlus, label: 'Debit Notes' },
+  { href: '/itc-reversals', icon: FileMinus, label: 'ITC Reversals' },
+  { href: '/gstin-verify', icon: ShieldCheck, label: 'GSTIN Verify' },
+  { href: '/reports/gst-comparison', icon: BarChart, label: 'GST Comparison' },
+  { href: '/ca-dashboard', icon: Building2, label: 'CA Clients' },
+  { href: '/audit-log', icon: Activity, label: 'Audit Log' },
+  { href: '/accountant', icon: Briefcase, label: 'Accountant' },
+  { href: '/backup', icon: Download, label: 'Backup' },
+  { href: '/settings', icon: Settings, label: 'Settings' },
+  { href: '/payments', icon: CreditCard, label: 'Payments' },
+  { href: '/cash-command', icon: Wallet, label: 'Cash Command' },
+  { href: '/payment-optimizer', icon: ArrowUpDown, label: 'Pay Optimizer' },
+  { href: '/expenses', icon: Receipt, label: 'Expenses' },
+  { href: '/bank-recon', icon: Landmark, label: 'Bank Recon' },
+  { href: '/tds', icon: BookOpen, label: 'TDS' },
+  { href: '/reminders', icon: Bell, label: 'Reminders' },
   { href: '/items', icon: Package, label: 'Items' },
   { href: '/quotations', icon: ClipboardList, label: 'Quotations' },
   { href: '/recurring', icon: RefreshCw, label: 'Recurring' },
-  { href: '/purchases', icon: ShoppingCart, label: 'Purchases' },
-  { href: '/vendors', icon: Store, label: 'Vendors' },
-  { href: '/credit-notes', icon: FileMinus, label: 'Credit Notes' },
-  { href: '/debit-notes', icon: FilePlus, label: 'Debit Notes' },
-  { href: '/settings', icon: Settings, label: 'Settings' },
-  { href: '/accountant', icon: Briefcase, label: 'Accountant' },
 ]
 
 export function MobileTabBar() {
