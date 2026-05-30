@@ -17,7 +17,7 @@ export default function Footer() {
                 <div className="font-extrabold text-ink-900 text-base">Invozen</div>
                 <div
                   className="text-[10px] font-bold tracking-wider px-1.5 py-0.5 rounded mt-0.5 inline-block"
-                  style={{ background: "rgba(34,197,94,0.12)", color: "#166534" }}
+                  style={{ background: "rgba(13,148,136,0.1)", color: "#0d9488" }}
                 >
                   GST
                 </div>

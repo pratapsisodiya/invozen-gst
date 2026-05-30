@@ -42,7 +42,6 @@ export default function MobileMenu() {
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className="p-2 rounded-md text-zinc-600 hover:text-teal-600 hover:bg-teal-50 transition-colors"
-        className="p-2 rounded-md text-zinc-600 hover:text-green-600 hover:bg-green-50 transition-colors"
       >
         {open ? <CloseIcon size={22} /> : <MenuIcon size={22} />}
       </button>
@@ -76,7 +75,7 @@ export default function MobileMenu() {
           <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-2">
             <BrandMark size={28} />
             <span className="text-sm font-semibold leading-none" style={{ color: "var(--text-base)" }}>
-              <span className="text-green-700 font-bold text-base">Invozen</span>
+              <span className="text-teal-600 font-bold text-base">Invozen</span>
               <span className="text-zinc-400 font-medium"> GST</span>
             </span>
           </Link>
@@ -97,7 +96,7 @@ export default function MobileMenu() {
               key={link.href}
               href={link.href}
               onClick={() => setOpen(false)}
-              className="flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium hover:bg-green-50 hover:text-green-700 transition-colors"
+              className="flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium hover:bg-teal-50 hover:text-teal-700 transition-colors"
               style={{ color: "var(--text-muted)" }}
             >
               {link.label}
@@ -122,7 +121,7 @@ export default function MobileMenu() {
           <Link
             href="/signup"
             onClick={() => setOpen(false)}
-            className="flex items-center justify-center gap-2 w-full bg-green-600 text-white text-sm font-semibold py-3 rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center justify-center gap-2 w-full bg-teal-600 text-white text-sm font-semibold py-3 rounded-lg hover:bg-teal-700 transition-colors"
           >
             Start Free Trial
             <ArrowRightIcon size={15} strokeWidth={2.5} />

@@ -33,7 +33,7 @@ export default function Header() {
             </span>
             <span
               className="text-xs font-bold px-1.5 py-0.5 rounded-md tracking-wider"
-              style={{ background: "rgba(34,197,94,0.12)", color: "#166534" }}
+              style={{ background: "rgba(13,148,136,0.1)", color: "#0d9488" }}
             >
               GST
             </span>
@@ -63,8 +63,8 @@ export default function Header() {
             </Link>
             <Link
               href="/signup"
-              className="btn-glow inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-xl hover:bg-green-700"
-              style={{ boxShadow: "0 2px 8px rgba(22,101,52,0.22)" }}
+              className="btn-glow inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white text-sm font-bold rounded-xl"
+              style={{ boxShadow: "0 2px 8px rgba(13,148,136,0.25)" }}
             >
               Start Free →
             </Link>

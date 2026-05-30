@@ -4,7 +4,7 @@ import { clerkAppearance } from "@/lib/auth/clerkAppearance";
 import "./globals.css";
 
 export const viewport: Viewport = {
-  themeColor: "#22c55e",
+  themeColor: "#0d9488",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
