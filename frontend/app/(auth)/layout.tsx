@@ -13,10 +13,10 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
     <div className="min-h-screen grid lg:grid-cols-2 bg-white">
       {/* Left side - Artwork / Branding */}
       <div className="hidden lg:flex flex-col justify-between p-12 bg-neutral-900 text-white relative overflow-hidden">
-        <div className="absolute inset-0 z-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-600 via-neutral-900 to-neutral-950"></div>
+        <div className="absolute inset-0 z-0 opacity-20 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-brand-600 via-neutral-900 to-neutral-950"></div>
         
         <Link href="/" className="z-10 flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white text-lg font-bold shadow-lg">G</div>
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white text-lg font-bold shadow-lg">G</div>
           <span className="font-bold text-xl tracking-tight">Invozen GST</span>
         </Link>
 
@@ -40,7 +40,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
 
       {/* Right side - Forms wrapper */}
       <div className="flex items-center justify-center p-4 lg:p-12" style={{ background: 'var(--bg-warm)' }}>
-        <div className="w-full max-w-[420px]">
+        <div className="w-full max-w-105">
           <div className="lg:hidden flex items-center gap-2 mb-8 justify-center">
             <span className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">G</span>
             <span className="font-bold text-lg" style={{ color: 'var(--text)' }}>Invozen GST</span>

@@ -50,6 +50,9 @@ export const metadata: Metadata = {
   },
 };
 
+const clerkSignInUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || "/login";
+const clerkSignUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || "/signup";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -65,10 +68,12 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-white">
         <ClerkProvider
           appearance={clerkAppearance}
-          signInUrl="/login"
-          signUpUrl="/signup"
+          publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+          signInUrl={clerkSignInUrl}
+          signUpUrl={clerkSignUpUrl}
           signInFallbackRedirectUrl="/dashboard"
           signUpFallbackRedirectUrl="/onboarding"
+          afterSignOutUrl="/"
         >
           {children}
         </ClerkProvider>
