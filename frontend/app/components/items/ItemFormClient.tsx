@@ -6,6 +6,7 @@ import { useUIStore } from '@/lib/store/uiStore'
 import { TopBar } from '../app/TopBar'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
+import { HSNSuggestButton } from '../ai/HSNSuggestButton'
 import { generateId } from '@/lib/utils/ids'
 import { GST_RATES } from '@/lib/gst/constants'
 import { UNITS } from '@/types/item'
@@ -107,9 +108,29 @@ export function ItemFormClient({ editId }: { editId?: string }) {
             <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--text)' }}>Classification & Pricing</h2>
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-3">
-                {form.type === 'product'
-                  ? <Input label="HSN Code" value={form.hsnCode} onChange={u('hsnCode')} placeholder="e.g. 8471" />
-                  : <Input label="SAC Code" value={form.sacCode} onChange={u('sacCode')} placeholder="e.g. 998314" />}
+                <div>
+                  <label className="text-[13px] font-medium mb-1.5 block" style={{ color: 'var(--text-2)' }}>{form.type === 'product' ? 'HSN Code' : 'SAC Code'}</label>
+                  <div className="flex items-center gap-0.5">
+                    <input
+                      value={form.type === 'product' ? form.hsnCode : form.sacCode}
+                      onChange={(e) => setForm((p) => ({ ...p, [form.type === 'product' ? 'hsnCode' : 'sacCode']: e.target.value }))}
+                      placeholder={form.type === 'product' ? 'e.g. 8471' : 'e.g. 998314'}
+                      className="flex-1 h-10 rounded-lg border px-3 text-sm outline-none focus:ring-2 focus:ring-brand-600/20"
+                      style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                    <HSNSuggestButton
+                      description={form.name || form.description || ''}
+                      itemType={form.type}
+                      onApply={(code, rate) => {
+                        setForm((p) => ({
+                          ...p,
+                          [form.type === 'product' ? 'hsnCode' : 'sacCode']: code,
+                          defaultGstRate: rate
+                        }))
+                      }}
+                    />
+                  </div>
+                </div>
                 <Select label="Unit" value={form.unit}
                   onChange={(e) => setForm((p) => ({ ...p, unit: e.target.value }))}
                   options={UNIT_OPTIONS} />

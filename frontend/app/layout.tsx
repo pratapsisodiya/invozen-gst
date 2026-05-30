@@ -1,7 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { clerkAppearance } from "@/lib/auth/clerkAppearance";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  themeColor: "#22c55e",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export const metadata: Metadata = {
   title: "Invozen GST — GST Invoicing & Compliance for Indian Businesses",
@@ -15,6 +22,19 @@ export const metadata: Metadata = {
     "e-invoice India",
     "small business GST",
   ],
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Invozen GST",
+  },
   openGraph: {
     title: "Invozen GST — GST Invoicing Made Simple",
     description:

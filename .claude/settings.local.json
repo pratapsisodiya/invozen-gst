@@ -36,7 +36,13 @@
       "Bash(git *)",
       "Bash(cat)",
       "Bash(bash /tmp/check_ai_issues.sh)",
-      "Bash(chmod +x *)"
+      "Bash(chmod +x *)",
+      "Bash(dir *)",
+      "Bash(node generate-icons.js)",
+      "Bash(netstat -ano)",
+      "Bash(findstr LISTENING)",
+      "Bash(findstr \"3000\\\\|5000\")",
+      "Bash(pkill -f \"next dev\")"
     ]
   }
 }

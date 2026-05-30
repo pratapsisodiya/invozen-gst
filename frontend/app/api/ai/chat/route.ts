@@ -1,4 +1,4 @@
-import Groq from 'groq-sdk'
+import { AzureOpenAI } from 'openai'
 import { NextRequest } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { rateLimitAI } from '@/lib/rateLimit'
@@ -47,7 +47,7 @@ You have deep knowledge of Indian GST law, GSTR-1, GSTR-3B, HSN/SAC codes, ITC r
 }
 
 export async function POST(req: NextRequest) {
-  if (!process.env.GROQ_API_KEY) {
+  if (!process.env.AZURE_OPENAI_API_KEY || !process.env.AZURE_OPENAI_ENDPOINT) {
     return Response.json({ error: 'AI not configured' }, { status: 503 })
   }
 
@@ -78,14 +78,18 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+    const client = new AzureOpenAI({
+      apiKey: process.env.AZURE_OPENAI_API_KEY,
+      endpoint: process.env.AZURE_OPENAI_ENDPOINT,
+      apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-12-01-preview',
+    })
 
     const validHistory = (body.history ?? [])
       .filter((m): m is HistoryMessage => m.role === 'user' || m.role === 'assistant')
       .slice(-10)
 
-    const stream = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+    const stream = await client.chat.completions.create({
+      model: process.env.AZURE_DEPLOYMENT_NAME || 'gpt-4.1-mini',
       max_tokens: 1024,
       stream: true,
       messages: [

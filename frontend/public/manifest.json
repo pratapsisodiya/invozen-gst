@@ -1,0 +1,38 @@
+{
+  "name": "Invozen GST",
+  "short_name": "Invozen",
+  "description": "GST Invoicing & Compliance for Indian Businesses",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ecfdf5",
+  "theme_color": "#22c55e",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/screenshot-540x720.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    }
+  ]
+}

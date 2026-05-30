@@ -69,7 +69,24 @@ export function DebitNoteFormClient() {
     return { taxableValue, cgstTotal, sgstTotal, igstTotal, totalTax: cgstTotal + sgstTotal + igstTotal, grandTotal: Math.round(lines.reduce((s, l) => s + l.totalAmount, 0)) }
   }, [lines])
 
-  const handleSave = (approve: boolean) => {
+  const handleSave = async (approve: boolean) => {
+    if (approve) {
+      try {
+        const res = await fetch('/api/ai/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lineItems: lines, supplyType })
+        })
+        const result = await res.json()
+        if (result.warnings?.length > 0) {
+          const msg = result.warnings.slice(0, 2).map((w: string) => `• ${w}`).join('\n')
+          addToast({ type: 'warning', title: 'Validation warnings', description: msg })
+        }
+      } catch (e) {
+        console.error('Validation failed:', e)
+      }
+    }
+
     const dnNum = `DN-${new Date().getFullYear()}-${String(debitNotes.length + 1).padStart(3, '0')}`
     const vendorId = selectedPurchase?.vendorId || ''
     const vendor = vendors.find((v) => v.id === vendorId)

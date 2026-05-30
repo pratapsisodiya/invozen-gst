@@ -75,8 +75,26 @@ export function CreditNoteFormClient() {
     grandTotal: Math.round(lines.reduce((s, l) => s + l.totalAmount, 0)),
   }), [lines])
 
-  const handleSave = (approve: boolean) => {
+  const handleSave = async (approve: boolean) => {
     if (!selectedInvoice) { addToast({ type: 'error', title: 'Please select an invoice' }); return }
+
+    if (approve) {
+      try {
+        const res = await fetch('/api/ai/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lineItems: lines, supplyType })
+        })
+        const result = await res.json()
+        if (result.warnings?.length > 0) {
+          const msg = result.warnings.slice(0, 2).map((w: string) => `• ${w}`).join('\n')
+          addToast({ type: 'warning', title: 'Validation warnings', description: msg })
+        }
+      } catch (e) {
+        console.error('Validation failed:', e)
+      }
+    }
+
     const cnNum = `CN-${new Date().getFullYear()}-${String(creditNotes.length + 1).padStart(3, '0')}`
     const cn: CreditNote = {
       id: generateId(),

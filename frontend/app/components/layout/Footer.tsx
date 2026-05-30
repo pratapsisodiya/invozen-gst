@@ -1,3 +1,5 @@
+import BrandMark from "@/app/components/layout/BrandMark";
+
 export default function Footer() {
   const year = new Date().getFullYear();
   return (
@@ -10,12 +12,12 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1 flex flex-col gap-5">
             <div className="flex items-center gap-2.5">
-              <FooterLogo />
+              <BrandMark size={26} />
               <div className="leading-none">
                 <div className="font-extrabold text-ink-900 text-base">Invozen</div>
                 <div
                   className="text-[10px] font-bold tracking-wider px-1.5 py-0.5 rounded mt-0.5 inline-block"
-                  style={{ background: "rgba(13,148,136,0.1)", color: "#0d9488" }}
+                  style={{ background: "rgba(34,197,94,0.12)", color: "#166534" }}
                 >
                   GST
                 </div>
@@ -108,18 +110,6 @@ function SocialLink({ href, label, children }: { href: string; label: string; ch
     >
       {children}
     </a>
-  );
-}
-
-function FooterLogo() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-      <rect width="30" height="30" rx="8" fill="#0d9488" />
-      <rect x="8" y="8" width="9" height="14" rx="1.5" fill="white" opacity="0.9" />
-      <rect x="14" y="8" width="8" height="2" rx="1" fill="white" opacity="0.5" />
-      <rect x="14" y="12" width="8" height="2" rx="1" fill="white" opacity="0.35" />
-      <path d="M8 20h14" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
-    </svg>
   );
 }
 
