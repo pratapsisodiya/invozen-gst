@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { useClerk, useUser } from '@clerk/nextjs'
 import { Bell, Keyboard, LogOut } from 'lucide-react'
 import { useNotificationStore } from '@/lib/store/notificationStore'
@@ -12,9 +12,9 @@ interface TopBarProps {
   actions?: React.ReactNode
 }
 
-export function TopBar({ title, breadcrumb, actions }: TopBarProps) {
-  const { unreadCount } = useNotificationStore()
-  const { openShortcutsPanel } = useUIStore()
+function TopBarComponent({ title, breadcrumb, actions }: TopBarProps) {
+  const unreadCount = useNotificationStore((state) => state.unreadCount)
+  const openShortcutsPanel = useUIStore((state) => state.openShortcutsPanel)
   const { user } = useUser()
   const { signOut } = useClerk()
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -105,7 +105,7 @@ export function TopBar({ title, breadcrumb, actions }: TopBarProps) {
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left hover:bg-ink-50 transition-colors"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left hover:bg-ink-50 transition-colors cursor-pointer"
                   style={{ color: 'var(--text)' }}
                 >
                   <LogOut className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
@@ -119,3 +119,5 @@ export function TopBar({ title, breadcrumb, actions }: TopBarProps) {
     </header>
   )
 }
+
+export const TopBar = memo(TopBarComponent)

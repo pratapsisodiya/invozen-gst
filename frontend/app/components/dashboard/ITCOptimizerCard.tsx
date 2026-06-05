@@ -20,7 +20,8 @@ const TYPE_CONFIG = {
 const PRIORITY_DOT: Record<string, string> = { high: '#EF4444', medium: '#F59E0B', low: '#6B7280' }
 
 export function ITCOptimizerCard() {
-  const { purchases, getItcSummary } = usePurchaseStore()
+  const purchases = usePurchaseStore((state) => state.purchases)
+  const getItcSummary = usePurchaseStore((state) => state.getItcSummary)
   const [result, setResult] = useState<ITCResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

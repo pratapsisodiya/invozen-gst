@@ -41,10 +41,10 @@ function saveCache(items: BriefingItem[]) {
 }
 
 export function AIDailyBriefingCard() {
-  const { invoices } = useInvoiceStore()
-  const { customers } = useCustomerStore()
-  const { getItcSummary } = usePurchaseStore()
-  const { profile } = useBusinessStore()
+  const invoices = useInvoiceStore((state) => state.invoices)
+  const customers = useCustomerStore((state) => state.customers)
+  const getItcSummary = usePurchaseStore((state) => state.getItcSummary)
+  const profile = useBusinessStore((state) => state.profile)
 
   const [items, setItems] = useState<BriefingItem[]>([])
   const [loading, setLoading] = useState(false)

@@ -1,7 +1,9 @@
 'use client'
+import { memo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
+import { useClerk } from '@clerk/nextjs'
 import {
   LayoutDashboard, FileText, Users, Package, BarChart2, CreditCard,
   Bell, Stamp, Settings, Briefcase, ChevronLeft, ChevronRight,
@@ -9,7 +11,7 @@ import {
   Calendar, GitMerge, TrendingUp, Boxes, Activity, BookOpen,
   Receipt, Landmark, Truck, FileCheck, Building2, ClipboardCheck,
   AlertOctagon, ScanLine, GitBranch, ArrowUpDown, Wallet,
-  ShieldCheck, BarChart, Download, Sparkles,
+  ShieldCheck, BarChart, Download, Sparkles, LogOut,
 } from 'lucide-react'
 import { useUIStore } from '@/lib/store/uiStore'
 
@@ -79,9 +81,11 @@ const NAV_GROUPS = [
   },
 ]
 
-export function Sidebar() {
+function SidebarComponent() {
   const pathname = usePathname()
-  const { sidebarOpen, toggleSidebar } = useUIStore()
+  const sidebarOpen = useUIStore((state) => state.sidebarOpen)
+  const toggleSidebar = useUIStore((state) => state.toggleSidebar)
+  const { signOut } = useClerk()
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard'
@@ -146,8 +150,21 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="flex-shrink-0 p-2" style={{ borderTop: '1px solid var(--border)' }}>
+      {/* Footer Actions */}
+      <div className="flex-shrink-0 p-2 flex flex-col gap-1" style={{ borderTop: '1px solid var(--border)' }}>
+        <button
+          onClick={() => signOut({ redirectUrl: '/' })}
+          className={cn(
+            'flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-err-50 cursor-pointer',
+            !sidebarOpen && 'justify-center'
+          )}
+          style={{ color: 'var(--err-600)' }}
+          title={!sidebarOpen ? 'Sign out' : undefined}
+        >
+          <LogOut className={cn('flex-shrink-0', sidebarOpen ? 'w-4 h-4' : 'w-5 h-5')} />
+          {sidebarOpen && <span className="font-medium">Sign out</span>}
+        </button>
+
         <button
           onClick={toggleSidebar}
           className="flex items-center justify-center w-full h-8 rounded-lg hover:bg-ink-50 transition-colors"
@@ -162,3 +179,5 @@ export function Sidebar() {
     </aside>
   )
 }
+
+export const Sidebar = memo(SidebarComponent)

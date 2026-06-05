@@ -16,8 +16,8 @@ const SEVERITY_STYLE = {
 }
 
 export function AnomalyDetectorCard() {
-  const { invoices } = useInvoiceStore()
-  const { profile } = useBusinessStore()
+  const invoices = useInvoiceStore((state) => state.invoices)
+  const profile = useBusinessStore((state) => state.profile)
   const [result, setResult] = useState<AnomalyResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

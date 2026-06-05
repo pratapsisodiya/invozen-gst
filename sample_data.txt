@@ -1,0 +1,9 @@
+Customer List and Outstanding Balances (May 2026)
+-----------------------------------------------
+1. Acme Corp: All clear.
+2. Global Tech: ₹5,900 pending since May 5th.
+3. Skyline Systems: ₹17,700 OVERDUE. High priority for collection.
+4. Local Retailers: Good payment history.
+
+Total Outstanding for this batch: ₹23,600.
+Note: IGST applies to Global Tech and Skyline Systems as they are inter-state.

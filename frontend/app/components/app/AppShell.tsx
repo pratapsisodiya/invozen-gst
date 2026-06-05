@@ -1,15 +1,25 @@
 'use client'
 import { useEffect } from 'react'
 import { useAuth } from '@clerk/nextjs'
+import dynamic from 'next/dynamic'
 import { Sidebar } from './Sidebar'
 import { MobileTabBar } from './MobileTabBar'
 import { ToastContainer } from '../ui/Toast'
-import { AIChatPanel } from '../ai/AIChatPanel'
-import { CommandPalette } from '../ui/CommandPalette'
-import { KeyboardShortcutsPanel } from '../ui/KeyboardShortcutsPanel'
 import { useKeySequence } from '@/lib/hooks/useKeyboardShortcut'
 import { useRouter } from 'next/navigation'
 import { registerTokenGetter } from '@/lib/api/tokenStore'
+
+// Lazily load heavy components
+const AIChatPanel = dynamic(() => import('../ai/AIChatPanel').then(m => m.AIChatPanel), {
+  ssr: false,
+  loading: () => null
+})
+const CommandPalette = dynamic(() => import('../ui/CommandPalette').then(m => m.CommandPalette), {
+  ssr: false
+})
+const KeyboardShortcutsPanel = dynamic(() => import('../ui/KeyboardShortcutsPanel').then(m => m.KeyboardShortcutsPanel), {
+  ssr: false
+})
 
 function GlobalKeySequences() {
   const router = useRouter()

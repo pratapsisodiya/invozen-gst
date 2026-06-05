@@ -1,5 +1,5 @@
 'use client'
-import { useMemo } from 'react'
+import { useMemo, memo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import type { Invoice } from '@/types/invoice'
 import { MONTH_NAMES } from '@/lib/gst/constants'
@@ -9,7 +9,7 @@ interface RevenueChartProps {
   onBarClick?: (month: number, year: number) => void
 }
 
-export function RevenueChart({ invoices, onBarClick }: RevenueChartProps) {
+function RevenueChartComponent({ invoices, onBarClick }: RevenueChartProps) {
   const data = useMemo(() => {
     const now = new Date()
     return Array.from({ length: 6 }, (_, i) => {
@@ -53,3 +53,5 @@ export function RevenueChart({ invoices, onBarClick }: RevenueChartProps) {
     </ResponsiveContainer>
   )
 }
+
+export const RevenueChart = memo(RevenueChartComponent)

@@ -24,8 +24,8 @@ function getBucket(daysPastDue: number): number {
 }
 
 export function AgingReportCard() {
-  const { invoices } = useInvoiceStore()
-  const { customers } = useCustomerStore()
+  const invoices = useInvoiceStore((state) => state.invoices)
+  const customers = useCustomerStore((state) => state.customers)
   const [drillBucket, setDrillBucket] = useState<number | null>(null)
   const [filterName, setFilterName] = useState('')
 

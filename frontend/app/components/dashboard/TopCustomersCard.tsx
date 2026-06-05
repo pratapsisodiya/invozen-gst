@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { Customer } from '@/types/customer'
 import type { Invoice } from '@/types/invoice'
 import Link from 'next/link'
@@ -8,7 +9,7 @@ interface TopCustomersCardProps {
   invoices: Invoice[]
 }
 
-export function TopCustomersCard({ customers, invoices }: TopCustomersCardProps) {
+function TopCustomersCardComponent({ customers, invoices }: TopCustomersCardProps) {
   const topCustomers = customers
     .map((c) => ({
       ...c,
@@ -46,3 +47,5 @@ export function TopCustomersCard({ customers, invoices }: TopCustomersCardProps)
     </div>
   )
 }
+
+export const TopCustomersCard = memo(TopCustomersCardComponent)

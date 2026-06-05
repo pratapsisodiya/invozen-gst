@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
@@ -28,23 +28,39 @@ export function DashboardClient() {
   const clientId = searchParams.get('clientId')
   const clientName = searchParams.get('clientName') ? decodeURIComponent(searchParams.get('clientName')!) : null
 
-  const { invoices } = useInvoiceStore()
-  const { customers } = useCustomerStore()
-  const { getItcSummary } = usePurchaseStore()
+  const invoices = useInvoiceStore((state) => state.invoices)
+  const customers = useCustomerStore((state) => state.customers)
+  const getItcSummary = usePurchaseStore((state) => state.getItcSummary)
   const [showHealthReport, setShowHealthReport] = useState(false)
 
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
 
-  const goToPrevMonth = () => {
-    if (selectedMonth === 1) { setSelectedMonth(12); setSelectedYear((y) => y - 1) }
-    else setSelectedMonth((m) => m - 1)
-  }
-  const goToNextMonth = () => {
-    if (selectedMonth === 12) { setSelectedMonth(1); setSelectedYear((y) => y + 1) }
-    else setSelectedMonth((m) => m + 1)
-  }
+  const goToPrevMonth = useCallback(() => {
+    setSelectedMonth((prev) => {
+      if (prev === 1) {
+        setSelectedYear((y) => y - 1)
+        return 12
+      }
+      return prev - 1
+    })
+  }, [])
+
+  const goToNextMonth = useCallback(() => {
+    setSelectedMonth((prev) => {
+      if (prev === 12) {
+        setSelectedYear((y) => y + 1)
+        return 1
+      }
+      return prev + 1
+    })
+  }, [])
+
+  const handleBarClick = useCallback((m: number, y: number) => {
+    setSelectedMonth(m)
+    setSelectedYear(y)
+  }, [])
   const isCurrentMonth = selectedMonth === now.getMonth() + 1 && selectedYear === now.getFullYear()
 
   const stats = useMemo(() => {
@@ -231,7 +247,7 @@ export function DashboardClient() {
             <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text)' }}>Revenue — Last 6 Months</h3>
             <RevenueChart
               invoices={invoices}
-              onBarClick={(m, y) => { setSelectedMonth(m); setSelectedYear(y) }}
+              onBarClick={handleBarClick}
             />
           </div>
           <div className="rounded-xl bg-white p-4" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>

@@ -119,8 +119,8 @@ export function GSTComparisonClient() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Period', 'Revenue', 'Output Tax', 'vs Prev', 'ITC Claimed', 'vs Prev', 'Net Payable', 'vs Prev', 'Invoices'].map((h) => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase" style={{ color: 'var(--text-muted)' }}>{h}</th>
+                  {['Period', 'Revenue', 'Output Tax', 'vs Prev', 'ITC Claimed', 'vs Prev', 'Net Payable', 'vs Prev', 'Invoices'].map((h, i) => (
+                    <th key={`${h}-${i}`} className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase" style={{ color: 'var(--text-muted)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>

@@ -106,7 +106,7 @@ export function rateLimit(
 export function rateLimitAI(userId: string): RateLimitResult {
   return rateLimit(userId, {
     windowMs: 60000, // 1 minute
-    max: 20, // 20 requests per minute
+    max: 100, // Increased for development
   })
 }
 

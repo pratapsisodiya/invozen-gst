@@ -31,8 +31,8 @@ function formatRs(n: number) {
 }
 
 export function CashFlowForecastCard() {
-  const { invoices } = useInvoiceStore()
-  const { payments } = usePaymentStore()
+  const invoices = useInvoiceStore((state) => state.invoices)
+  const payments = usePaymentStore((state) => state.payments)
   const [forecastDays, setForecastDays] = useState<ForecastDays>(30)
   const [result, setResult] = useState<ForecastResult | null>(null)
   const [loading, setLoading] = useState(false)

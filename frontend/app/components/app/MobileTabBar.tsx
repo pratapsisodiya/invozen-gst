@@ -1,15 +1,16 @@
 'use client'
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
+import { useClerk } from '@clerk/nextjs'
 import {
   LayoutDashboard, FileText, Plus, Users, MoreHorizontal,
   BarChart2, CreditCard, Bell, Settings, Stamp, Briefcase, Package,
   ShoppingCart, Store, FileMinus, FilePlus, RefreshCw, ClipboardList,
   GitMerge, TrendingUp, AlertOctagon, ScanLine, GitBranch, FileCheck,
   ShieldCheck, BarChart, Building2, Activity, Download, Landmark,
-  BookOpen, Receipt, Truck, Wallet, ArrowUpDown, Sparkles,
+  BookOpen, Receipt, Truck, Wallet, ArrowUpDown, Sparkles, LogOut,
 } from 'lucide-react'
 
 const MORE_ITEMS = [
@@ -48,9 +49,10 @@ const MORE_ITEMS = [
   { href: '/recurring', icon: RefreshCw, label: 'Recurring' },
 ]
 
-export function MobileTabBar() {
+function MobileTabBarComponent() {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
+  const { signOut } = useClerk()
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard'
@@ -85,6 +87,14 @@ export function MobileTabBar() {
                 <span className="text-[10px] font-medium">{item.label}</span>
               </Link>
             ))}
+            <button
+              onClick={() => signOut({ redirectUrl: '/' })}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-xl text-center hover:bg-err-50 cursor-pointer"
+              style={{ color: 'var(--err-600)' }}
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="text-[10px] font-medium">Sign out</span>
+            </button>
           </div>
           <div className="h-safe-bottom" />
         </div>
@@ -152,3 +162,5 @@ export function MobileTabBar() {
     </>
   )
 }
+
+export const MobileTabBar = memo(MobileTabBarComponent)

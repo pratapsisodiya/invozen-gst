@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -22,7 +23,7 @@ const cardIcons = [
   Users,
 ];
 
-export function CAPriorityBoard() {
+function CAPriorityBoardComponent() {
   return (
     <section
       className="rounded-2xl bg-white p-4 lg:p-5"
@@ -117,3 +118,5 @@ export function CAPriorityBoard() {
     </section>
   );
 }
+
+export const CAPriorityBoard = memo(CAPriorityBoardComponent)
