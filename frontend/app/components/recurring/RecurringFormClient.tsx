@@ -3,6 +3,9 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRecurringStore } from '@/lib/store/recurringStore'
 import { useCustomerStore } from '@/lib/store/customerStore'
+import { useInvoiceStore } from '@/lib/store/invoiceStore'
+import { useItemStore } from '@/lib/store/itemStore'
+import { useBusinessStore } from '@/lib/store/businessStore'
 import { useUIStore } from '@/lib/store/uiStore'
 import { generateId } from '@/lib/utils/ids'
 import { calculateLineItem } from '@/lib/gst/calculator'
@@ -12,6 +15,7 @@ import { Select } from '../ui/Select'
 import { Textarea } from '../ui/Textarea'
 import { AmountDisplay } from '../ui/AmountDisplay'
 import { Plus, Trash2, Search, Save } from 'lucide-react'
+import { AIAutofillButton } from '../ai/AIAutofillButton'
 import { FREQUENCY_LABELS } from '@/types/recurring'
 import type { RecurringFrequency, RecurringTemplate } from '@/types/recurring'
 import type { LineItem, SupplyType } from '@/types/invoice'
@@ -23,8 +27,11 @@ function emptyLine(): LineItem {
 
 export function RecurringFormClient() {
   const router = useRouter()
-  const { templates, addTemplate } = useRecurringStore()
+  const addTemplate = useRecurringStore((state) => state.addTemplate)
   const { customers } = useCustomerStore()
+  const { invoices } = useInvoiceStore()
+  const { items } = useItemStore()
+  const { profile } = useBusinessStore()
   const { addToast } = useUIStore()
 
   const [name, setName] = useState('')
@@ -40,13 +47,25 @@ export function RecurringFormClient() {
   const [terms, setTerms] = useState('Payment due within 30 days.')
   const [lines, setLines] = useState<LineItem[]>([emptyLine()])
 
-  const supplyType: SupplyType = selectedCustomer?.gstinState === 'Maharashtra' ? 'intra' : 'inter'
+  const supplyType: SupplyType = useMemo(() => {
+    if (!selectedCustomer) return 'intra'
+    const customerStateCode = selectedCustomer.gstinStateCode || selectedCustomer.billingAddress.stateCode
+    return customerStateCode === profile.stateCode ? 'intra' : 'inter'
+  }, [profile.stateCode, selectedCustomer])
 
   const custResults = useMemo(() => {
     if (!custSearch) return customers.slice(0, 6)
     const q = custSearch.toLowerCase()
     return customers.filter((c) => c.name.toLowerCase().includes(q) || c.businessName?.toLowerCase().includes(q)).slice(0, 6)
   }, [customers, custSearch])
+
+  const customerHistory = useMemo(() => {
+    if (!selectedCustomer) return []
+    return invoices
+      .filter((invoice) => invoice.customerId === selectedCustomer.id && invoice.status !== 'void')
+      .sort((a, b) => b.invoiceDate.localeCompare(a.invoiceDate))
+      .slice(0, 6)
+  }, [invoices, selectedCustomer])
 
   const updateLine = (id: string, field: keyof LineItem, value: string | number) => {
     setLines((prev) => prev.map((l) => {
@@ -148,7 +167,23 @@ export function RecurringFormClient() {
         </div>
 
         <div className="rounded-xl bg-white p-4" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-          <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>Line Items</h3>
+          <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Line Items</h3>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                Build a repeatable invoice once, then let the template generate the next ones.
+              </p>
+            </div>
+            {selectedCustomer && (
+              <AIAutofillButton
+                customer={selectedCustomer}
+                pastInvoices={customerHistory}
+                items={items}
+                supplyType={supplyType}
+                onApply={setLines}
+              />
+            )}
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

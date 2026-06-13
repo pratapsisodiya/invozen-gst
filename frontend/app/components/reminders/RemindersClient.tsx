@@ -1,9 +1,11 @@
 'use client'
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
 import { useCustomerStore } from '@/lib/store/customerStore'
 import { useBusinessStore } from '@/lib/store/businessStore'
 import { useUIStore } from '@/lib/store/uiStore'
+import { useCollectionsAutopilotStore } from '@/lib/store/autopilotStore'
 import { shareInvoiceViaWhatsApp } from '@/lib/whatsapp/whatsappShare'
 import { TopBar } from '../app/TopBar'
 import { Tabs } from '../ui/Tabs'
@@ -96,6 +98,7 @@ export function RemindersClient() {
   const { customers } = useCustomerStore()
   const { profile } = useBusinessStore()
   const { addToast } = useUIStore()
+  const approvalQueueCount = useCollectionsAutopilotStore((state) => state.approvalTasks.filter((task) => task.status === 'queued').length)
 
   const [activeTab, setActiveTab] = useState('pending')
   const [sent, setSent] = useState<Set<string>>(new Set())
@@ -235,6 +238,24 @@ export function RemindersClient() {
       />
 
       <div className="flex-1 p-4 lg:p-6 flex flex-col gap-4">
+        <div className="rounded-xl bg-white p-4 flex items-center justify-between gap-4 flex-wrap" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Guarded collections autopilot</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              {approvalQueueCount > 0
+                ? `${approvalQueueCount} drafted reminder${approvalQueueCount === 1 ? '' : 's'} are waiting for approval before anything is sent.`
+                : 'The autopilot can draft reminders and queue them for approval instead of sending automatically.'}
+            </p>
+          </div>
+          <Link
+            href="/collections-autopilot"
+            className="px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
+            style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
+          >
+            Open autopilot
+          </Link>
+        </div>
+
         <div className="rounded-xl bg-white overflow-hidden" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
           <div className="px-5 pt-4 pb-0">
             <Tabs
@@ -373,7 +394,7 @@ export function RemindersClient() {
                 ))}
               </div>
               <p className="text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
-                Automation rules send WhatsApp messages automatically when conditions are met.
+                These rules determine when the autopilot drafts a reminder. Outbound messages still require owner approval before sending.
               </p>
             </div>
           )}

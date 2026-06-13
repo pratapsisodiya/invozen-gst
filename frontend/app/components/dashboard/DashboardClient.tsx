@@ -9,7 +9,7 @@ import { StatusBadge } from '../ui/Badge'
 import { TopBar } from '../app/TopBar'
 import { AmountDisplay } from '../ui/AmountDisplay'
 import { formatDate } from '@/lib/utils/formatters'
-import { Plus, Users, BarChart2, Bell, FileText, TrendingUp, ShoppingCart, CheckCircle, Clock, AlertTriangle, Sparkles, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Plus, Users, BarChart2, Bell, FileText, TrendingUp, ShoppingCart, CheckCircle, Clock, AlertTriangle, Sparkles, ChevronLeft, ChevronRight, X, ListTodo } from 'lucide-react'
 import { usePurchaseStore } from '@/lib/store/purchaseStore'
 import { RevenueChart } from './RevenueChart'
 import { TopCustomersCard } from './TopCustomersCard'
@@ -141,6 +141,11 @@ export function DashboardClient() {
               style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
               <Sparkles className="w-4 h-4 text-brand-600" /> <span className="hidden sm:inline">Health Report</span>
             </button>
+            <Link href="/action-desk"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
+              style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+              <ListTodo className="w-4 h-4 text-brand-600" /> <span className="hidden sm:inline">Action Desk</span>
+            </Link>
             <Link href="/invoices/new" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors">
               <Plus className="w-4 h-4" /> <span className="hidden sm:inline">New Invoice</span>
             </Link>

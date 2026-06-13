@@ -1,8 +1,12 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import { TopBar } from '@/app/components/app/TopBar'
 import { useApiClient } from '@/lib/api/client'
-import { Sparkles, Send, Loader2, BarChart2, FileText, RefreshCw, TrendingUp, AlertTriangle, CheckCircle, Info } from 'lucide-react'
+import { Sparkles, Send, Loader2, BarChart2, FileText, RefreshCw, TrendingUp, AlertTriangle, CheckCircle, Info, ListTodo } from 'lucide-react'
+import { useActionDeskStore } from '@/lib/store/actionDeskStore'
+import { generateId } from '@/lib/utils/ids'
+import { getActionGroup, inferActionTypeFromText } from '@/lib/ai/actionDesk'
 
 type Tab = 'chat' | 'insights' | 'invoice-assistant'
 
@@ -49,8 +53,6 @@ interface InvoiceAssistantResult {
   totalEstimate: number
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'
-
 const QUICK_PROMPTS = [
   'What is my GST liability this month?',
   'Which invoices are overdue?',
@@ -71,8 +73,13 @@ function priorityIcon(p: string) {
   return <CheckCircle className="w-4 h-4" />
 }
 
+function getErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : 'Network error. Is the backend running?'
+}
+
 export function AICopilotClient() {
   const [activeTab, setActiveTab] = useState<Tab>('chat')
+  const saveAction = useActionDeskStore((state) => state.saveAction)
 
   // Chat state
   const [messages, setMessages] = useState<Message[]>([])
@@ -95,6 +102,25 @@ export function AICopilotClient() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  function saveToActionDesk(text: string, options?: { title?: string; targetHref?: string }) {
+    const type = inferActionTypeFromText(text)
+    saveAction({
+      id: generateId(),
+      type,
+      group: getActionGroup(type),
+      title: options?.title || 'Copilot follow-up',
+      summary: text.length > 140 ? `${text.slice(0, 137)}...` : text,
+      urgency: 'medium',
+      confidence: 'low',
+      impactLabel: 'Saved from copilot',
+      reason: 'This note was promoted from Copilot so you can revisit it in the Action Desk.',
+      targetHref: options?.targetHref ?? '/action-desk',
+      primaryActionLabel: options?.targetHref ? 'Open related page' : 'Open action desk',
+      secondaryActionLabel: 'Review note',
+      source: 'copilot',
+    })
+  }
 
   const { request } = useApiClient()
 
@@ -143,8 +169,8 @@ export function AICopilotClient() {
       } else {
         setMessages((prev) => [...prev, { role: 'assistant', content: 'Agent did not return an answer.' }])
       }
-    } catch (err: any) {
-      setMessages((prev) => [...prev, { role: 'assistant', content: err?.message || 'Network error. Is the backend running?' }])
+    } catch (err: unknown) {
+      setMessages((prev) => [...prev, { role: 'assistant', content: getErrorMessage(err) }])
     } finally {
       setChatLoading(false)
     }
@@ -157,8 +183,8 @@ export function AICopilotClient() {
       const data = await request<InsightsResult>(`/ai/insights`, { method: 'POST', body: JSON.stringify({}) })
       if (data) setInsightsData(data)
       else setInsightsError('Failed to generate insights.')
-    } catch (err: any) {
-      setInsightsError(err?.message || 'Network error. Is the backend running?')
+    } catch (err: unknown) {
+      setInsightsError(getErrorMessage(err))
     } finally {
       setInsightsLoading(false)
     }
@@ -173,8 +199,8 @@ export function AICopilotClient() {
       const data = await request<InvoiceAssistantResult>(`/ai/invoice-assistant`, { method: 'POST', body: JSON.stringify({ description: iaInput }) })
       if (data?.lineItems) setIaResult(data)
       else setIaError('Could not parse invoice. Try a more specific description.')
-    } catch (err: any) {
-      setIaError(err?.message || 'Network error. Is the backend running?')
+    } catch (err: unknown) {
+      setIaError(getErrorMessage(err))
     } finally {
       setIaLoading(false)
     }
@@ -193,8 +219,15 @@ export function AICopilotClient() {
         breadcrumb={[]}
         actions={
           <div className="flex items-center gap-1.5">
+            <Link
+              href="/action-desk"
+              className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full font-medium"
+              style={{ background: 'var(--surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+            >
+              <ListTodo className="w-3.5 h-3.5" /> Action Desk
+            </Link>
             <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ background: 'var(--surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-              Powered by Groq · Llama 3.3
+              Powered by Groq / Azure
             </span>
           </div>
         }
@@ -259,7 +292,7 @@ export function AICopilotClient() {
                 </div>
               )}
               {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div key={i} className={`flex flex-col gap-1 ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
                   <div
                     className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                       m.role === 'user'
@@ -270,6 +303,14 @@ export function AICopilotClient() {
                   >
                     {m.content}
                   </div>
+                  {m.role === 'assistant' && (
+                    <button
+                      onClick={() => saveToActionDesk(m.content)}
+                      className="text-[11px] font-semibold text-brand-700 hover:text-brand-800"
+                    >
+                      Add to Action Desk
+                    </button>
+                  )}
                 </div>
               ))}
               {chatLoading && (
@@ -401,9 +442,17 @@ export function AICopilotClient() {
                   </p>
                   <div className="flex flex-col gap-2">
                     {insightsData.recommendations.map((r, i) => (
-                      <div key={i} className="flex gap-2 text-sm" style={{ color: 'var(--text-2)' }}>
-                        <span className="font-semibold text-brand-600 flex-shrink-0">{i + 1}.</span>
-                        <span>{r}</span>
+                      <div key={i} className="flex items-start justify-between gap-3 text-sm" style={{ color: 'var(--text-2)' }}>
+                        <div className="flex gap-2">
+                          <span className="font-semibold text-brand-600 flex-shrink-0">{i + 1}.</span>
+                          <span>{r}</span>
+                        </div>
+                        <button
+                          onClick={() => saveToActionDesk(r, { title: `Copilot recommendation ${i + 1}` })}
+                          className="shrink-0 text-[11px] font-semibold text-brand-700 hover:text-brand-800"
+                        >
+                          Save
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -516,12 +565,24 @@ export function AICopilotClient() {
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Notes: {iaResult.notes}</p>
                 )}
 
-                <a
-                  href="/invoices/new"
-                  className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-brand-50 transition-colors text-brand-700 border-brand-200"
-                >
-                  <FileText className="w-3.5 h-3.5" /> Create Invoice from This
-                </a>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link
+                    href="/invoices/new"
+                    className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-brand-50 transition-colors text-brand-700 border-brand-200"
+                  >
+                    <FileText className="w-3.5 h-3.5" /> Create Invoice from This
+                  </Link>
+                  <button
+                    onClick={() => saveToActionDesk(
+                      `Review draft for ${iaResult.customerHint || 'new customer'} with estimated total Rs.${Math.round(iaResult.totalEstimate).toLocaleString('en-IN')}.`,
+                      { title: 'Review AI invoice draft', targetHref: '/invoices/new' }
+                    )}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
+                  >
+                    <ListTodo className="w-3.5 h-3.5" /> Save to Action Desk
+                  </button>
+                </div>
               </div>
             )}
           </div>

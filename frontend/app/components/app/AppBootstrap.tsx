@@ -11,6 +11,8 @@ import { useQuotationStore } from '@/lib/store/quotationStore'
 import { useCreditNoteStore } from '@/lib/store/creditNoteStore'
 import { useRecurringStore } from '@/lib/store/recurringStore'
 import { useNotificationStore } from '@/lib/store/notificationStore'
+import { useCollectionsAutopilotStore } from '@/lib/store/autopilotStore'
+import { buildCollectionsAutopilotPayload, runCollectionsAutopilot } from '@/lib/ai/autopilotClient'
 
 // One-time clear of old mock localStorage data from previous sessions
 const MOCK_CLEARED_KEY = 'invozen-mock-cleared-v1'
@@ -18,7 +20,7 @@ const MOCK_STORE_KEYS = [
   'invozen-invoices', 'invozen-customers', 'invozen-items',
   'invozen-payments', 'invozen-purchases', 'invozen-business',
   'invozen-notifications', 'invozen-quotations', 'invozen-recurring',
-  'invozen-credit-notes',
+  'invozen-credit-notes', 'invozen-collections-autopilot',
 ]
 
 function clearOldMockData() {
@@ -60,6 +62,7 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
   const initCreditNotes = useCreditNoteStore((state) => state.init)
   const initRecurring = useRecurringStore((state) => state.init)
   const initNotifications = useNotificationStore((state) => state.init)
+  const syncAutopilotEvaluation = useCollectionsAutopilotStore((state) => state.syncEvaluation)
   const executeAllOverdue = useRecurringStore((state) => state.executeAllOverdue)
   const expireOverdueQuotations = useQuotationStore((state) => state.expireOverdue)
 
@@ -82,11 +85,25 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
       await executeAllOverdue()
       expireOverdueQuotations()
       checkAndNotifyOverdueInvoices()
+      try {
+        const payload = buildCollectionsAutopilotPayload({
+          invoices: useInvoiceStore.getState().invoices,
+          customers: useCustomerStore.getState().customers,
+          payments: usePaymentStore.getState().payments,
+          profile: useBusinessStore.getState().profile,
+          settings: useBusinessStore.getState().settings,
+          triggeredBy: 'bootstrap',
+        })
+        const evaluation = await runCollectionsAutopilot(payload)
+        syncAutopilotEvaluation(evaluation)
+      } catch {
+        // bootstrap should remain resilient when autopilot refresh fails
+      }
     })
   }, [
     initInvoices, initCustomers, initItems, initPayments, initBusiness,
     initVendors, initPurchases, initQuotations, initCreditNotes,
-    initRecurring, initNotifications, executeAllOverdue, expireOverdueQuotations,
+    initRecurring, initNotifications, syncAutopilotEvaluation, executeAllOverdue, expireOverdueQuotations,
   ])
 
   return children

@@ -11,6 +11,13 @@ import { generateId } from '@/lib/utils/ids'
 import type { Payment } from '@/types/payment'
 import { Upload, CheckCircle2, AlertTriangle, XCircle, Check } from 'lucide-react'
 
+interface AISuggestedMatch {
+  invoiceId: string | null
+  confidence: 'high' | 'medium' | 'low'
+  reasoning: string
+  suggestedAction: 'link_invoice' | 'record_advance'
+}
+
 export function BankReconClient() {
   const { payments, addPayment } = usePaymentStore()
   const { invoices, markAsPaid } = useInvoiceStore()
@@ -25,6 +32,8 @@ export function BankReconClient() {
   const [recordingTxn, setRecordingTxn] = useState<BankTransaction | null>(null)
   const [recordInvoiceId, setRecordInvoiceId] = useState('')
   const [invoiceSearch, setInvoiceSearch] = useState('')
+  const [aiMatching, setAiMatching] = useState(false)
+  const [aiSuggestion, setAiSuggestion] = useState<AISuggestedMatch | null>(null)
 
   const processFile = useCallback((file: File) => {
     if (!file.name.endsWith('.csv')) {
@@ -99,7 +108,48 @@ export function BankReconClient() {
     setRecordingTxn(txn)
     setRecordInvoiceId('')
     setInvoiceSearch('')
+    setAiSuggestion(null)
     setShowRecordModal(true)
+  }
+
+  const handleAISuggestMatch = async () => {
+    if (!recordingTxn || aiMatching) return
+    setAiMatching(true)
+    try {
+      const res = await fetch('/api/ai/bank-recon-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction: {
+            description: recordingTxn.description,
+            amount: recordingTxn.credit,
+            date: recordingTxn.date,
+            reference: recordingTxn.reference,
+          },
+          candidates: unmatchedOutstanding.slice(0, 20).map((invoice) => ({
+            id: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            customerName: invoice.customerSnapshot.name,
+            balanceDue: invoice.balanceDue,
+            dueDate: invoice.dueDate,
+          })),
+        }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      const data = await res.json() as AISuggestedMatch
+      setAiSuggestion(data)
+      if (data.invoiceId) {
+        const invoice = unmatchedOutstanding.find((item) => item.id === data.invoiceId)
+        if (invoice) {
+          setRecordInvoiceId(invoice.id)
+          setInvoiceSearch(`${invoice.invoiceNumber} — ${invoice.customerSnapshot.name}`)
+        }
+      }
+    } catch {
+      addToast({ type: 'error', title: 'AI match failed', message: 'Try selecting the invoice manually.' })
+    } finally {
+      setAiMatching(false)
+    }
   }
 
   const handleRecordPayment = async () => {
@@ -297,6 +347,33 @@ export function BankReconClient() {
 
             <div>
               <label className="text-[13px] font-medium block mb-1" style={{ color: 'var(--text-2)' }}>Link to Invoice (optional)</label>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  AI can suggest the most likely outstanding invoice from the bank narration and amount.
+                </p>
+                <button
+                  onClick={() => void handleAISuggestMatch()}
+                  disabled={aiMatching || unmatchedOutstanding.length === 0}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors disabled:opacity-40"
+                  style={{ border: '1px solid var(--border)', color: 'var(--text)' }}
+                >
+                  {aiMatching ? 'Matching...' : 'AI Suggest'}
+                </button>
+              </div>
+              {aiSuggestion && (
+                <div className="rounded-lg p-3 mb-2" style={{ background: 'var(--brand-50)', border: '1px solid var(--brand-100)' }}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-semibold uppercase text-brand-700">AI Match</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold uppercase" style={{ background: 'white', color: 'var(--brand-700)', border: '1px solid var(--brand-100)' }}>
+                      {aiSuggestion.confidence}
+                    </span>
+                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      {aiSuggestion.suggestedAction === 'link_invoice' ? 'Suggest linking this receipt to an invoice.' : 'Suggest recording this as an advance receipt.'}
+                    </span>
+                  </div>
+                  <p className="text-xs mt-2" style={{ color: 'var(--text)' }}>{aiSuggestion.reasoning}</p>
+                </div>
+              )}
               <input
                 value={invoiceSearch}
                 onChange={(e) => { setInvoiceSearch(e.target.value); setRecordInvoiceId('') }}

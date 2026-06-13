@@ -29,6 +29,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATIC_PAGES: CommandResult[] = [
   { id: 'p-dashboard', type: 'page', label: 'Dashboard', sublabel: 'Overview & KPIs', href: '/dashboard', icon: LayoutDashboard },
+  { id: 'p-action-desk', type: 'page', label: 'AI Action Desk', sublabel: 'Priority queue & next steps', href: '/action-desk', icon: BarChart2 },
+  { id: 'p-collections-autopilot', type: 'page', label: 'Collections Autopilot', sublabel: 'Approval queue & audit trail', href: '/collections-autopilot', icon: BarChart2 },
   { id: 'p-invoices', type: 'page', label: 'Invoices', sublabel: 'Manage invoices', href: '/invoices', icon: FileText },
   { id: 'p-customers', type: 'page', label: 'Customers', sublabel: 'Customer management', href: '/customers', icon: Users },
   { id: 'p-items', type: 'page', label: 'Items & Services', sublabel: 'Product catalog', href: '/items', icon: Package },

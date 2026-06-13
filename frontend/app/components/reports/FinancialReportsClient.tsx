@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
 import { usePurchaseStore } from '@/lib/store/purchaseStore'
 import { useExpenseStore } from '@/lib/store/expenseStore'
@@ -10,7 +11,8 @@ import { generatePLStatement } from '@/lib/reports/plReport'
 import { downloadCSV } from '@/lib/export/excelExport'
 import { useUIStore } from '@/lib/store/uiStore'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { TrendingUp, TrendingDown, Download } from 'lucide-react'
+import { TrendingUp, TrendingDown, Download, Sparkles } from 'lucide-react'
+import { AIHealthReportModal } from '../ai/AIHealthReportModal'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -24,6 +26,7 @@ export function FinancialReportsClient() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
   const [activeTab, setActiveTab] = useState('pl')
+  const [showHealthReport, setShowHealthReport] = useState(false)
 
   const pl = useMemo(() => generatePLStatement(invoices, purchases, expenses, selectedMonth, selectedYear),
     [invoices, purchases, expenses, selectedMonth, selectedYear])
@@ -101,8 +104,36 @@ export function FinancialReportsClient() {
           </div>
         }
       />
+      <AIHealthReportModal open={showHealthReport} onClose={() => setShowHealthReport(false)} />
 
       <div className="flex-1 p-4 lg:p-6 flex flex-col gap-5">
+        <div className="rounded-xl bg-white p-4 flex items-start justify-between gap-4 flex-wrap" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <div className="max-w-2xl">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Sparkles className="w-4 h-4 text-brand-600" />
+              <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>AI Financial Health Summary</p>
+            </div>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Turn this month&apos;s revenue, margin, aging, and cash data into an executive summary with risks, opportunities, and action items.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setShowHealthReport(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5" /> Generate summary
+            </button>
+            <Link
+              href="/action-desk"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
+              style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
+            >
+              View Action Desk
+            </Link>
+          </div>
+        </div>
+
         <div className="rounded-xl bg-white overflow-hidden" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
           <div className="px-5 pt-4 pb-0">
             <Tabs tabs={[{ key: 'pl', label: 'P&L Statement' }, { key: 'cashflow', label: 'Cash Flow' }, { key: 'aging', label: 'Aging Receivables' }]}

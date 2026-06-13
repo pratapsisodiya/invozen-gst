@@ -11,7 +11,7 @@ import {
   Calendar, GitMerge, TrendingUp, Boxes, Activity, BookOpen,
   Receipt, Landmark, Truck, FileCheck, Building2, ClipboardCheck,
   AlertOctagon, ScanLine, GitBranch, ArrowUpDown, Wallet,
-  ShieldCheck, BarChart, Download, Sparkles, LogOut,
+  ShieldAlert, ShieldCheck, BarChart, Download, Sparkles, LogOut,
 } from 'lucide-react'
 import { useUIStore } from '@/lib/store/uiStore'
 
@@ -19,6 +19,8 @@ const NAV_GROUPS = [
   {
     label: 'AI',
     items: [
+      { href: '/action-desk', icon: Sparkles, label: 'Action Desk' },
+      { href: '/collections-autopilot', icon: ShieldAlert, label: 'Collections Autopilot' },
       { href: '/ai-copilot', icon: Sparkles, label: 'AI Copilot' },
     ],
   },

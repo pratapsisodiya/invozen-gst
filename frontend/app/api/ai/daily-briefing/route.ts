@@ -1,5 +1,6 @@
 import Groq from 'groq-sdk'
 import { NextRequest } from 'next/server'
+import type { AgentActionType } from '@/types/agentAction'
 
 interface BriefingRequest {
   businessName: string
@@ -25,10 +26,34 @@ export interface BriefingItem {
   title: string
   detail: string
   icon: 'alert' | 'money' | 'tax' | 'chart' | 'check'
+  actionType?: AgentActionType
+  targetHref?: string
+  primaryActionLabel?: string
 }
 
 function stripJsonFences(text: string): string {
   return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+}
+
+function enrichBriefingItem(item: BriefingItem): BriefingItem {
+  const text = `${item.title} ${item.detail}`.toLowerCase()
+
+  if (text.includes('overdue') || text.includes('collect') || text.includes('reminder')) {
+    return { ...item, actionType: 'overdue_followup', targetHref: '/reminders', primaryActionLabel: 'Open reminders' }
+  }
+  if (text.includes('itc') || text.includes('credit')) {
+    return { ...item, actionType: 'itc_claim', targetHref: '/itc-reconciliation', primaryActionLabel: 'Review ITC' }
+  }
+  if (text.includes('filing') || text.includes('gstr') || text.includes('return')) {
+    return { ...item, actionType: 'filing_task', targetHref: '/filing-workflow', primaryActionLabel: 'Open filing workflow' }
+  }
+  if (text.includes('cash') || text.includes('bank') || text.includes('payable')) {
+    return { ...item, actionType: 'cash_warning', targetHref: '/cash-command', primaryActionLabel: 'Open cash command' }
+  }
+  if (text.includes('rcm') || text.includes('vendor') || text.includes('supplier')) {
+    return { ...item, actionType: 'vendor_risk', targetHref: '/action-desk', primaryActionLabel: 'Review action desk' }
+  }
+  return { ...item, actionType: 'manual_task', targetHref: '/action-desk', primaryActionLabel: 'View action desk' }
 }
 
 export async function POST(req: NextRequest) {
@@ -89,7 +114,7 @@ Return ONLY valid JSON: {"items": [{"type":"...", "title":"...", "detail":"...",
     const raw = stripJsonFences(response.choices[0]?.message?.content ?? '{}')
     try {
       const parsed = JSON.parse(raw) as { items: BriefingItem[] }
-      const items = Array.isArray(parsed?.items) ? parsed.items.slice(0, 5) : []
+      const items = Array.isArray(parsed?.items) ? parsed.items.slice(0, 5).map(enrichBriefingItem) : []
       return Response.json({ items })
     } catch {
       return Response.json({ error: 'Could not parse AI response' }, { status: 503 })

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, startTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { useInvoiceStore } from '@/lib/store/invoiceStore'
 import { useCustomerStore } from '@/lib/store/customerStore'
 import { usePurchaseStore } from '@/lib/store/purchaseStore'
@@ -41,6 +42,7 @@ function saveCache(items: BriefingItem[]) {
 }
 
 export function AIDailyBriefingCard() {
+  const router = useRouter()
   const invoices = useInvoiceStore((state) => state.invoices)
   const customers = useCustomerStore((state) => state.customers)
   const getItcSummary = usePurchaseStore((state) => state.getItcSummary)
@@ -50,7 +52,8 @@ export function AIDailyBriefingCard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
   const [loadedAt, setLoadedAt] = useState<Date | null>(null)
-  const isStale = loadedAt ? Date.now() - loadedAt.getTime() > STALE_WARN_MS : false
+  const [timeNow, setTimeNow] = useState(() => Date.now())
+  const isStale = loadedAt ? timeNow - loadedAt.getTime() > STALE_WARN_MS : false
 
   const fetchBriefing = useCallback(async (force = false) => {
     if (!force) {
@@ -119,8 +122,13 @@ export function AIDailyBriefingCard() {
   }, [invoices, customers, profile, getItcSummary])
 
   useEffect(() => {
-    startTransition(() => { fetchBriefing() })
+    const timer = window.setInterval(() => setTimeNow(Date.now()), 60000)
+    return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    startTransition(() => { fetchBriefing() })
+  }, [fetchBriefing])
 
   if (error) return null
 
@@ -173,7 +181,11 @@ export function AIDailyBriefingCard() {
               const style = TYPE_STYLES[item.type]
               const Icon = ICON_MAP[item.icon]
               return (
-                <div key={idx} className={`flex items-start gap-3 rounded-lg p-3 ${style.bg} border ${style.border}`}>
+                <button
+                  key={idx}
+                  onClick={() => item.targetHref ? router.push(item.targetHref) : router.push('/action-desk')}
+                  className={`w-full text-left flex items-start gap-3 rounded-lg p-3 ${style.bg} border ${style.border} hover:opacity-95 transition-opacity`}
+                >
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${style.badge}`}>
                     <Icon className="w-3.5 h-3.5" />
                   </div>
@@ -185,9 +197,12 @@ export function AIDailyBriefingCard() {
                       </span>
                     </div>
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.detail}</p>
+                    <p className="text-[11px] mt-2 font-semibold" style={{ color: 'var(--text)' }}>
+                      {item.primaryActionLabel ?? 'View action desk'}
+                    </p>
                   </div>
                   <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'var(--text-faint)' }} />
-                </div>
+                </button>
               )
             })}
           </div>

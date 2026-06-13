@@ -14,6 +14,8 @@ import {
 } from 'lucide-react'
 
 const MORE_ITEMS = [
+  { href: '/action-desk', icon: Sparkles, label: 'Action Desk' },
+  { href: '/collections-autopilot', icon: ShieldCheck, label: 'Collections Autopilot' },
   { href: '/ai-copilot', icon: Sparkles, label: 'AI Copilot' },
   { href: '/reports/gstr1', icon: BarChart2, label: 'GST Reports' },
   { href: '/reports/gstr9', icon: FileText, label: 'GSTR-9 Annual' },
