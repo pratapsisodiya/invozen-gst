@@ -113,7 +113,7 @@ export function AICopilotClient() {
       })
 
       if (data?.reply) {
-        setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
+        setMessages((prev) => [...prev, { role: 'assistant', content: data.reply ?? '' }])
         if (data.context) setChatContext(data.context)
       } else {
         setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, I could not get a response. Please check your API configuration.' }])
@@ -139,7 +139,7 @@ export function AICopilotClient() {
         body: JSON.stringify({ messages: newMessages }),
       })
       if (data?.reply) {
-        setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
+        setMessages((prev) => [...prev, { role: 'assistant', content: data.reply ?? '' }])
       } else {
         setMessages((prev) => [...prev, { role: 'assistant', content: 'Agent did not return an answer.' }])
       }

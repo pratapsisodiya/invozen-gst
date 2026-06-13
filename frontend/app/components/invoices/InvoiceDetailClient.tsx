@@ -75,7 +75,7 @@ export function InvoiceDetailClient({ id }: { id: string }) {
 
   // Auto-trigger send email if navigated with ?action=send
   useEffect(() => {
-    if (searchParams.get('action') === 'send' && invoice) {
+    if (searchParams && searchParams.get('action') === 'send' && invoice) {
       handleSendEmailEarly()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

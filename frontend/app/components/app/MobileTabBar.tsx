@@ -55,6 +55,7 @@ function MobileTabBarComponent() {
   const { signOut } = useClerk()
 
   const isActive = (href: string) => {
+    if (!pathname) return false
     if (href === '/dashboard') return pathname === '/dashboard'
     return pathname.startsWith(href)
   }

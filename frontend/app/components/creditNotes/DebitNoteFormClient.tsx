@@ -80,7 +80,7 @@ export function DebitNoteFormClient() {
         const result = await res.json()
         if (result.warnings?.length > 0) {
           const msg = result.warnings.slice(0, 2).map((w: string) => `• ${w}`).join('\n')
-          addToast({ type: 'warning', title: 'Validation warnings', description: msg })
+          addToast({ type: 'warning', title: 'Validation warnings', message: msg })
         }
       } catch (e) {
         console.error('Validation failed:', e)

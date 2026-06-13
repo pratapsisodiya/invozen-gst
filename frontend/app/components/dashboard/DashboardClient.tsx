@@ -25,8 +25,8 @@ import { MONTH_NAMES } from '@/lib/gst/constants'
 export function DashboardClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const clientId = searchParams.get('clientId')
-  const clientName = searchParams.get('clientName') ? decodeURIComponent(searchParams.get('clientName')!) : null
+  const clientId = searchParams ? searchParams.get('clientId') : null
+  const clientName = searchParams && searchParams.get('clientName') ? decodeURIComponent(searchParams.get('clientName')!) : null
 
   const invoices = useInvoiceStore((state) => state.invoices)
   const customers = useCustomerStore((state) => state.customers)

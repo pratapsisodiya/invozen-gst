@@ -88,6 +88,7 @@ function SidebarComponent() {
   const { signOut } = useClerk()
 
   const isActive = (href: string) => {
+    if (!pathname) return false
     if (href === '/dashboard') return pathname === '/dashboard'
     if (href.startsWith('/reports')) return pathname.startsWith('/reports')
     return pathname.startsWith(href)
