@@ -14,7 +14,7 @@ import { formatDate } from '@/lib/utils/formatters'
 import { formatAmountInWords } from '@/lib/gst/formatter'
 import { generateId } from '@/lib/utils/ids'
 import { useState, useEffect, useCallback } from 'react'
-import { Edit, Download, Send, CreditCard, CheckCircle2, Truck, MessageSquareWarning, Copy, Loader2, AlertCircle } from 'lucide-react'
+import { Edit, Download, Send, CreditCard, CheckCircle2, Truck, MessageSquareWarning, Copy, Loader2, AlertCircle, MessageCircle } from 'lucide-react'
 import { PAYMENT_METHOD_LABELS } from '@/types/payment'
 import type { PaymentMethod } from '@/types/payment'
 import { downloadInvoicePdf } from '@/lib/pdf/invoicePdf'
@@ -23,6 +23,7 @@ import { calculateLateInterest } from '@/lib/gst/latePaymentInterest'
 import { AmendmentReasonModal } from './AmendmentReasonModal'
 import { EWayBillClient } from '../einvoice/EWayBillClient'
 import { FileAttachment } from '../ui/FileAttachment'
+import { AISmartReminderModal } from '../ai/AISmartReminderModal'
 import { useAttachmentStore } from '@/lib/store/attachmentStore'
 
 export function InvoiceDetailClient({ id }: { id: string }) {
@@ -49,6 +50,7 @@ export function InvoiceDetailClient({ id }: { id: string }) {
   const [disputeResult, setDisputeResult] = useState<{ letterText: string; keyPoints: string[]; interestCalculation: number; suggestedResolution: string } | null>(null)
   const [useAdvanceId, setUseAdvanceId] = useState<string | null>(null)
   const [showAmendModal, setShowAmendModal] = useState(false)
+  const [showSmartReminderModal, setShowSmartReminderModal] = useState(false)
 
   const invoice = invoices.find((i) => i.id === id)
 
@@ -295,6 +297,13 @@ export function InvoiceDetailClient({ id }: { id: string }) {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-ink-50 transition-colors"
                     style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
                     WhatsApp
+                  </button>
+                )}
+                {invoice.status === 'overdue' && (
+                  <button onClick={() => setShowSmartReminderModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium hover:bg-brand-50 transition-colors"
+                    style={{ border: '1px solid var(--brand-200)', color: 'var(--brand-700)' }}>
+                    <MessageCircle className="w-3.5 h-3.5" /> AI Draft Reminder
                   </button>
                 )}
                 {invoice.status === 'overdue' && (
@@ -685,6 +694,18 @@ export function InvoiceDetailClient({ id }: { id: string }) {
           }
         }}
       />
+
+      {/* AI Smart Reminder Modal */}
+      {customers.find((c) => c.id === invoice.customerId) && (
+        <AISmartReminderModal
+          open={showSmartReminderModal}
+          onClose={() => setShowSmartReminderModal(false)}
+          invoice={invoice}
+          customer={customers.find((c) => c.id === invoice.customerId)!}
+          profile={profile}
+          previousReminders={0}
+        />
+      )}
     </div>
   )
 }

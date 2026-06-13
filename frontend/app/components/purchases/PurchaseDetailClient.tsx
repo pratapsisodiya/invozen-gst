@@ -11,6 +11,8 @@ import { CheckCircle, Trash2, FileDown } from 'lucide-react'
 import type { ItcStatus, PurchaseStatus } from '@/types/purchase'
 import { useBusinessStore } from '@/lib/store/businessStore'
 import { downloadPurchaseOrderPdf } from '@/lib/pdf/purchaseOrderPdf'
+import { AIPDFAssistModal } from '../ai/AIPDFAssistModal'
+import { Sparkles } from 'lucide-react'
 
 const STATUS_COLORS: Record<PurchaseStatus, { bg: string; text: string }> = {
   draft: { bg: '#F3F4F6', text: '#6B7280' },
@@ -32,6 +34,7 @@ export function PurchaseDetailClient({ id }: { id: string }) {
   const { addToast } = useUIStore()
   const { profile } = useBusinessStore()
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [showAIModal, setShowAIModal] = useState(false)
 
   const purchase = purchases.find((p) => p.id === id)
   if (!purchase) return (
@@ -58,6 +61,11 @@ export function PurchaseDetailClient({ id }: { id: string }) {
                 <FileDown className="w-4 h-4" /> PDF
               </button>
             )}
+            <button onClick={() => setShowAIModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-brand-50"
+              style={{ border: '1px solid var(--brand-200)', color: 'var(--brand-700)' }}>
+              <Sparkles className="w-4 h-4" /> AI Review
+            </button>
             {purchase.itcStatus === 'eligible' && (
               <button onClick={() => { claimItc(purchase.id); addToast({ type: 'success', title: 'ITC claimed' }) }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-colors">
@@ -162,6 +170,13 @@ export function PurchaseDetailClient({ id }: { id: string }) {
         variant="danger"
         onConfirm={() => { deletePurchase(purchase.id); addToast({ type: 'success', title: 'Purchase deleted' }); router.push('/purchases') }}
         onClose={() => setDeleteOpen(false)}
+      />
+
+      <AIPDFAssistModal 
+        open={showAIModal} 
+        onClose={() => setShowAIModal(false)} 
+        purchase={purchase} 
+        profile={profile} 
       />
     </div>
   )
